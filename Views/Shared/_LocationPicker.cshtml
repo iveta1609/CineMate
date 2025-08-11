@@ -1,0 +1,96 @@
+﻿@* Self-contained UI + JS *@
+<div id="location-picker" class="d-flex align-items-center gap-2">
+    <select id="citySelect" class="form-select form-select-sm" style="min-width:160px">
+        <option value="">Select city</option>
+    </select>
+
+    <select id="cinemaSelect" class="form-select form-select-sm" style="min-width:220px" disabled>
+        <option value="">Select cinema</option>
+    </select>
+</div>
+
+@section Scripts {
+    <script>
+        (function(){
+            const citySel   = document.getElementById('citySelect');
+            const cinemaSel = document.getElementById('cinemaSelect');
+
+            const LS_CITY   = 'cm_cityId';
+            const LS_CINEMA = 'cm_cinemaId';
+
+            const savedCity   = localStorage.getItem(LS_CITY);
+            const savedCinema = localStorage.getItem(LS_CINEMA);
+
+            // 1) Load cities
+            fetch('/Cities/List')
+              .then(r => r.json())
+              .then(cities => {
+                  cities.forEach(c => {
+                      const opt = document.createElement('option');
+                      opt.value = c.id; opt.textContent = c.name;
+                      citySel.appendChild(opt);
+                  });
+
+                  if (savedCity) {
+                      citySel.value = savedCity;
+                      loadCinemas(savedCity, savedCinema);
+                  }
+              });
+
+            // 2) When city changes -> load cinemas, clear selection
+            citySel.addEventListener('change', () => {
+                const cityId = citySel.value || '';
+                localStorage.setItem(LS_CITY, cityId);
+                cinemaSel.innerHTML = '<option value="">Select cinema</option>';
+                localStorage.removeItem(LS_CINEMA);
+                if (cityId) loadCinemas(cityId, null);
+                else cinemaSel.disabled = true;
+            });
+
+            // 3) When cinema changes -> navigate to Screenings with filters
+            cinemaSel.addEventListener('change', () => {
+                const cityId   = citySel.value;
+                const cinemaId = cinemaSel.value;
+                localStorage.setItem(LS_CINEMA, cinemaId || '');
+                if (cityId && cinemaId) {
+                    window.location.href = `/Screenings?cityId=${encodeURIComponent(cityId)}&cinemaId=${encodeURIComponent(cinemaId)}`;
+                }
+            });
+
+            function loadCinemas(cityId, preselect) {
+                cinemaSel.disabled = true;
+                fetch(`/Cinemas/ByCity?cityId=${encodeURIComponent(cityId)}`)
+                  .then(r => r.json())
+                  .then(cinemas => {
+                      cinemas.forEach(k => {
+                          const opt = document.createElement('option');
+                          opt.value = k.id; opt.textContent = k.name;
+                          cinemaSel.appendChild(opt);
+                      });
+                      cinemaSel.disabled = false;
+                      if (preselect) {
+                          cinemaSel.value = preselect;
+                      }
+                  });
+            }
+        })();
+    </script>
+    <style>
+        #location-picker .form-select {
+            padding-top: .25rem;
+            padding-bottom: .25rem;
+        }
+        @@media (max-width: 576px) {
+            #location-picker
+
+        {
+            width: 100%;
+        }
+
+        #location-picker .form-select {
+            flex: 1;
+        }
+
+        }
+    </style>
+}

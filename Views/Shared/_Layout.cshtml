@@ -1,25 +1,27 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - CineMate</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CineMate.styles.css" asp-append-version="true" />
-    @RenderSection("Styles", required: false)
 
+    @RenderSection("Styles", required: false)
 </head>
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">CineMate</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
@@ -29,10 +31,38 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+
+                    <!-- City / Cinema picker -->
+                    <div id="location-picker" class="d-flex align-items-center me-3">
+                        <select id="citySelect" class="form-select form-select-sm" style="min-width:160px">
+                            <option value="">Select city</option>
+                        </select>
+                        <select id="cinemaSelect" class="form-select form-select-sm" style="min-width:220px" disabled>
+                            <option value="">Select cinema</option>
+                        </select>
+                    </div>
+
+                    <!-- Auth menu -->
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    <button type="submit" class="nav-link btn btn-link">Logout</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login">Login</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Register">Register</a></li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -44,25 +74,179 @@
             &copy; 2025 - CineMate - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
-<ul class="navbar-nav">
-    @if (User.Identity?.IsAuthenticated ?? false)
-    {
-        <li class="nav-item">
-            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                <button type="submit" class="nav-link btn btn-link">Logout</button>
-            </form>
-        </li>
-    }
-    else
-    {
-        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login">Login</a></li>
-        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Register">Register</a></li>
-    }
-</ul>
 
+    <!-- Location picker logic -->
+    <script>
+        (function () {
+            const citySel   = document.getElementById('citySelect');
+            const cinemaSel = document.getElementById('cinemaSelect');
+            if (!citySel || !cinemaSel) return;
+
+            const LS_CITY   = 'cm_cityId';
+            const LS_CINEMA = 'cm_cinemaId';
+
+            // чистим стари невалидни стойности
+            if (localStorage.getItem(LS_CITY) === '-1') localStorage.removeItem(LS_CITY);
+
+            function setCinemaDisabled(v){ cinemaSel.disabled = v; }
+
+            function loadCinemas(cityId, preselect) {
+                setCinemaDisabled(true);
+                cinemaSel.innerHTML = '<option value="">Select cinema</option>';
+                if (!cityId) { setCinemaDisabled(false); return; }
+
+                fetch(`/Cinemas/ByCity?cityId=${encodeURIComponent(cityId)}`)
+                    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                    .then(list => {
+                        if (!Array.isArray(list) || list.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.value = ''; opt.textContent = 'No cinemas';
+                            cinemaSel.appendChild(opt);
+                        } else {
+                            list.forEach(k => {
+                                const opt = document.createElement('option');
+                                opt.value = k.id; opt.textContent = k.name;
+                                cinemaSel.appendChild(opt);
+                            });
+                            if (preselect && list.some(x => String(x.id) === String(preselect))) {
+                                cinemaSel.value = preselect;
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.error('ByCity failed:', err);
+                        const opt = document.createElement('option');
+                        opt.value = ''; opt.textContent = 'Failed to load';
+                        cinemaSel.appendChild(opt);
+                    })
+                    .finally(() => setCinemaDisabled(false));
+            }
+
+            // Зареждаме градовете
+            fetch('/Cities/List')
+                .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                .then(cities => {
+                    cities.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id; opt.textContent = c.name;
+                        citySel.appendChild(opt);
+                    });
+
+                    const savedCity   = localStorage.getItem(LS_CITY);
+                    const savedCinema = localStorage.getItem(LS_CINEMA);
+
+                    if (savedCity && ![...citySel.options].some(o => String(o.value) === String(savedCity))) {
+                        localStorage.removeItem(LS_CITY);
+                    }
+
+                    const effectiveCity = localStorage.getItem(LS_CITY);
+                    if (effectiveCity) {
+                        citySel.value = effectiveCity;
+                        loadCinemas(effectiveCity, savedCinema);
+                    }
+                })
+                .catch(err => console.error('Cities/List failed:', err));
+
+            // City changed
+            citySel.addEventListener('change', () => {
+                const cityId = citySel.value;
+                localStorage.setItem(LS_CITY, cityId || '');
+                localStorage.removeItem(LS_CINEMA);
+                loadCinemas(cityId, null);
+            });
+
+            // Cinema changed -> navigate to program
+            cinemaSel.addEventListener('change', () => {
+                const cityId   = citySel.value;
+                const cinemaId = cinemaSel.value;
+                localStorage.setItem(LS_CINEMA, cinemaId || '');
+                if (cityId && cinemaId) {
+                    window.location.href = `/Screenings?cityId=${encodeURIComponent(cityId)}&cinemaId=${encodeURIComponent(cinemaId)}`;
+                }
+            });
+        })();
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
 </html>
+
+<style>
+    /* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+    for details on configuring this project to bundle and minify static web assets. */
+
+    a.navbar-brand {
+        white-space: normal;
+        text-align: center;
+        word-break: break-all;
+    }
+
+    a {
+        color: #0077cc;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: #1b6ec2;
+        border-color: #1861ac;
+    }
+
+    .nav-pills .nav-link.active, .nav-pills .show > .nav-link {
+        color: #fff;
+        background-color: #1b6ec2;
+        border-color: #1861ac;
+    }
+
+    .border-top {
+        border-top: 1px solid #e5e5e5;
+    }
+
+    .border-bottom {
+        border-bottom: 1px solid #e5e5e5;
+    }
+
+    .box-shadow {
+        box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+    }
+
+    button.accept-policy {
+        font-size: 1rem;
+        line-height: inherit;
+    }
+
+    .footer {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        white-space: nowrap;
+        line-height: 60px;
+    }
+
+    /* ---- Custom: location picker styles ---- */
+    .navbar .form-select.form-select-sm {
+        padding-top: .25rem;
+        padding-bottom: .25rem;
+    }
+
+    #location-picker {
+        gap: .5rem;
+    }
+
+    @@media (max-width: 576px) {
+        #location-picker
+
+    {
+        width: 100%;
+    }
+
+    #location-picker .form-select {
+        flex: 1;
+        min-width: 0;
+    }
+
+    }
+</style>

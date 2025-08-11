@@ -1,59 +1,251 @@
 ﻿@model CineMate.Models.SelectSeatsViewModel
-
 @{
-    ViewData["Title"] = $"Select Your Seats & Category for {Model.Screening.Movie.Title} ({Model.Screening.StartTime:dd.MM.yyyy HH:mm})";
+    ViewData["Title"] = "Select Seats";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h2 class="mb-3">Select seats for @Model.Screening?.Movie?.Title</h2>
+<p class="text-muted">
+    @Model.Screening?.Cinema?.Name • @Model.Screening?.StartTime.ToString("dd.MM.yyyy HH:mm")
+</p>
 
-<form asp-action="SelectSeats"
-      asp-controller="Screenings"
-      asp-route-id="@Model.Screening.Id"
-      method="post">
+<form asp-action="SelectSeats" asp-route-id="@Model.ScreeningId" method="post">
     @Html.AntiForgeryToken()
 
-    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-    @* Показваме редовете и местата *@
-    @foreach (var rowGroup in Model.Seats.GroupBy(s => s.Row).OrderBy(g => g.Key))
-    {
-        <div class="d-flex align-items-center mb-2">
-            <strong class="me-2">Row @rowGroup.Key</strong>
-            @foreach (var seat in rowGroup.OrderBy(s => s.Number))
-            {
-                var cbId = $"seat_{seat.Id}";
-                <div class="form-check me-2">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           id="@cbId"
-                           name="selectedSeatIds"
-                           value="@seat.Id"
-                           @(seat.IsAvailable ? "" : "disabled") />
-                    <label class="form-check-label" for="@cbId">
-                        @seat.Number
-                    </label>
-                </div>
-            }
+    <input type="hidden" asp-for="ScreeningId" />
+
+    <!-- Seat map -->
+    <div class="card mb-3 p-4 text-center">
+        <div class="screen mb-4">SCREEN</div>
+
+        <table class="seat-map mx-auto">
+            <thead>
+                <tr>
+                    <th class="corner"></th>
+                    @for (int seatNum = 1; seatNum <= 10; seatNum++)
+                    {
+                        <th class="col-num">@seatNum</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var grouped = Model.Seats
+                    .OrderBy(s => s.Row)
+                    .ThenBy(s => s.Number)
+                    .GroupBy(s => s.Row)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                    for (int row = 1; row <= 7; row++)
+                    {
+                        var seatsInRow = grouped.ContainsKey(row) ? grouped[row] : new List<CineMate.Data.Entities.Seat>();
+                    }
+                }
+                @for (int row = 1; row <= 7; row++)
+                {
+                    var seatsInRow = grouped.ContainsKey(row) ? grouped[row] : new List<CineMate.Data.Entities.Seat>();
+                    <tr>
+                        <th class="row-num">Row @row</th>
+                        @for (int seatNum = 1; seatNum <= 10; seatNum++)
+                        {
+                            var seat = seatsInRow.FirstOrDefault(s => s.Number == seatNum);
+                            if (seat is null)
+                            {
+                                <td class="empty"></td>
+                            }
+                            else
+                            {
+                                var isChecked = (Model.SelectedSeatIds?.Contains(seat.Id) ?? false);
+                                <td>
+                                    <label class="seat-wrap" title="@($"R{row}-N{seatNum}")">
+                                        <input type="checkbox"
+                                               class="seat-input"
+                                               name="SelectedSeatIds"
+                                               value="@seat.Id"
+                                        @(isChecked ? "checked" : null)
+                                        @(seat.IsAvailable ? null : "disabled")
+                                               aria-label="@($"Row {row}, Seat {seatNum}")" />
+                                        <span class="seat-box @(seat.IsAvailable ? "" : "taken")">
+                                            @seatNum
+                                        </span>
+                                    </label>
+                                </td>
+                            }
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="legend mt-3">
+            <span><span class="legend-box available"></span> Available</span>
+            <span><span class="legend-box selected"></span> Selected</span>
+            <span><span class="legend-box taken"></span> Taken</span>
         </div>
-    }
-    <span asp-validation-for="selectedSeatIds" class="text-danger"></span>
 
-    <div class="mb-4">
-        <label for="categorySelect" class="form-label">Ticket Category</label>
-        <select id="categorySelect"
-                name="SelectedCategory"
-                class="form-select">
-            <option value="">-- choose category --</option>
-            @foreach (var item in Model.Categories)
-            {
-                <option value="@item.Value"
-                        @(item.Value == Model.SelectedCategory ? "selected" : "")>
-                    @item.Text
-                </option>
-            }
-        </select>
+        <span asp-validation-for="SelectedSeatIds" class="text-danger d-block mt-2"></span>
+    </div>
+
+    <!-- Category -->
+    <div class="card mb-3 p-3">
+        <h4 class="mb-2">Ticket category</h4>
+        <div class="d-flex gap-3 flex-wrap">
+            <label class="form-check">
+                <input type="radio" class="form-check-input" asp-for="SelectedCategory" value="Adult" />
+                <span class="form-check-label">Adult (16 лв.)</span>
+            </label>
+            <label class="form-check">
+                <input type="radio" class="form-check-input" asp-for="SelectedCategory" value="Teen" />
+                <span class="form-check-label">Teen (11 лв.)</span>
+            </label>
+            <label class="form-check">
+                <input type="radio" class="form-check-input" asp-for="SelectedCategory" value="Kids" />
+                <span class="form-check-label">Kids (7 лв.)</span>
+            </label>
+        </div>
         <span asp-validation-for="SelectedCategory" class="text-danger"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">Reserve Selected Seats</button>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Reserve</button>
+        <a asp-action="Details" asp-route-id="@Model.ScreeningId" class="btn btn-secondary">Back</a>
+    </div>
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<style>
+    .card {
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+    }
+
+    .screen {
+        width: min(700px, 90%);
+        margin-inline: auto;
+        background: linear-gradient(to bottom, #e9ecef, #dfe3e7);
+        border: 1px solid #d0d5db;
+        border-radius: 8px;
+        padding: 6px 0;
+        font-weight: 600;
+        letter-spacing: .08em;
+    }
+
+    .seat-map {
+        border-collapse: separate;
+        border-spacing: 6px;
+    }
+
+        .seat-map th, .seat-map td {
+            text-align: center;
+        }
+
+        .seat-map .corner {
+            width: 58px;
+        }
+
+        .seat-map .col-num {
+            width: 42px;
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .seat-map .row-num {
+            text-align: right;
+            padding-right: 8px;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+    .seat-wrap {
+        position: relative;
+        display: inline-block;
+    }
+
+    .seat-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .seat-box {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border: 1px solid #d0d7de;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 1px 0 rgba(16,24,40,.04);
+        font-size: .95rem;
+        user-select: none;
+        transition: transform .05s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+    }
+
+    .seat-input:not(:disabled):hover + .seat-box {
+        box-shadow: 0 2px 6px rgba(16,24,40,.12);
+    }
+
+    .seat-input:not(:disabled):active + .seat-box {
+        transform: scale(.98);
+    }
+
+    .seat-input:checked + .seat-box {
+        background: #e7f1ff;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13,110,253,.15);
+        font-weight: 600;
+    }
+
+    .seat-box.taken {
+        background: #f1f3f5;
+        border-color: #e0e3e7;
+        color: #98a2b3;
+        text-decoration: line-through;
+    }
+
+    .seat-input:disabled {
+        cursor: not-allowed;
+    }
+
+    .legend {
+        display: flex;
+        gap: 18px;
+        justify-content: center;
+        color: #6c757d;
+    }
+
+    .legend-box {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        margin-right: 6px;
+        border: 1px solid #d0d7de;
+        vertical-align: -3px;
+    }
+
+        .legend-box.available {
+            background: #fff;
+        }
+
+        .legend-box.selected {
+            background: #e7f1ff;
+            border-color: #0d6efd;
+            box-shadow: inset 0 0 0 1px #0d6efd;
+        }
+
+        .legend-box.taken {
+            background: #f1f3f5;
+            border-color: #e0e3e7;
+        }
+
+    .legend span {
+        font-size: .95rem;
+    }
+</style>

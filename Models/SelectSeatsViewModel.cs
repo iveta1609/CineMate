@@ -1,17 +1,18 @@
-﻿using System.Collections.Generic;
-using CineMate.Data.Entities;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using CineMate.Data.Entities;
 
 namespace CineMate.Models
 {
     public class SelectSeatsViewModel
     {
-        public Screening Screening { get; set; } = default!;
+        public int ScreeningId { get; set; }
+        public Screening? Screening { get; set; }   // навигационният обект за заглавието, киното и часа
 
         public List<Seat> Seats { get; set; } = new();
 
-        public int[] SelectedSeatIds { get; set; } = new int[0];
-
+        public int[] SelectedSeatIds { get; set; } = Array.Empty<int>();
         public string? SelectedCategory { get; set; }
 
         public List<SelectListItem> Categories { get; set; } = new();

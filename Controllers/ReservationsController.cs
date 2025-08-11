@@ -48,8 +48,9 @@ namespace CineMate.Controllers
                       .ThenInclude(rs => rs.Seat)
                   .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (reservation == null)
-                return NotFound();
+            if (reservation == null) return NotFound();
+
+            return View(reservation);
 
             // Създаваме списък от Seat обекти за view-а
             var seats = reservation.ReservationSeats
@@ -82,7 +83,8 @@ namespace CineMate.Controllers
         {
             if (!ModelState.IsValid) return View(reservation);
 
-            reservation.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
             reservation.ReservationTime = System.DateTime.Now;
 
             // Ако нямаш избрани конкретни места тук, остави TotalPrice 0 или го пресметни по логика
