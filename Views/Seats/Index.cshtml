@@ -1,0 +1,52 @@
+﻿@model IEnumerable<CineMate.Data.Entities.Seat>
+
+@{
+    ViewData["Title"] = "Seats";
+}
+
+<h1>Seats</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New Seat</a>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Screening</th>
+            <th>Row</th>
+            <th>Number</th>
+            <th>Available</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var seat in Model)
+        {
+            <tr>
+                <td>
+                    @seat.Screening.Cinema.Name
+                    — @seat.Screening.Movie.Title
+                    @seat.Screening.StartTime.ToString("g")
+                </td>
+                <td>@seat.Row</td>
+                <td>@seat.Number</td>
+                <td>
+                    @if (seat.IsAvailable)
+                    {
+                        <span class="badge bg-success">Yes</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">No</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@seat.Id">Details</a> |
+                    <a asp-action="Edit" asp-route-id="@seat.Id">Edit</a> |
+                    <a asp-action="Delete" asp-route-id="@seat.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

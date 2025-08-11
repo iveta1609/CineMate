@@ -1,0 +1,21 @@
+﻿@model CineMate.Data.Entities.Screening
+
+@{
+    ViewData["Title"] = "Screening Details";
+}
+
+<h1>Screening Details</h1>
+
+<dl class="row">
+    <dt class="col-sm-2">Cinema</dt>
+    <dd class="col-sm-10">@Model.Cinema.Name</dd>
+    <dt class="col-sm-2">Movie</dt>
+    <dd class="col-sm-10">@Model.Movie.Title</dd>
+    <dt class="col-sm-2">Start Time</dt>
+    <dd class="col-sm-10">@Model.StartTime.ToString("f")</dd>
+</dl>
+
+<p>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</p>

@@ -1,0 +1,37 @@
+﻿@model CineMate.Models.ReserveSeatsViewModel
+@{
+    ViewData["Title"] = "Finalize Your Reservation";
+}
+
+<h1>Reserve Seats &amp; Ticket Category</h1>
+
+<form asp-action="ReserveSeats" method="post">
+    @* Hidden screening ID *@
+    <input asp-for="ScreeningId" type="hidden" />
+
+    <h3>Your Seats</h3>
+    <ul class="list-unstyled">
+        @foreach (var seat in Model.Seats)
+        {
+            <li>
+                Row @seat.Row, Seat @seat.Number
+                <input name="SelectedSeatIds" type="hidden" value="@seat.Id" />
+            </li>
+        }
+    </ul>
+    <span asp-validation-for="SelectedSeatIds" class="text-danger"></span>
+
+    <h3>Ticket Category</h3>
+    <select asp-for="SelectedCategory" asp-items="Model.Categories" class="form-select">
+        <option value="">-- Select category --</option>
+    </select>
+    <span asp-validation-for="SelectedCategory" class="text-danger"></span>
+
+    <button type="submit" class="btn btn-primary mt-3">Reserve!</button>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

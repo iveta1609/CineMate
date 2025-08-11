@@ -1,0 +1,36 @@
+﻿@model IEnumerable<CineMate.Data.Entities.Cinema>
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Cinemas";
+}
+
+<h1>Cinemas</h1>
+
+<p>
+    <a asp-action="Create">Create New Cinema</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>City</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var cinema in Model)
+        {
+            <tr>
+                <td>@cinema.Name</td>
+                <td>@cinema.City.Name</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@cinema.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@cinema.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@cinema.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

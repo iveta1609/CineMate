@@ -1,0 +1,49 @@
+﻿@model CineMate.Data.Entities.Seat
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Edit Seat";
+}
+
+<h1>Edit Seat</h1>
+
+<form asp-action="Edit" method="post" class="mt-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <div class="mb-3">
+        <label asp-for="ScreeningId" class="form-label"></label>
+        <select asp-for="ScreeningId"
+                asp-items="@(ViewData["ScreeningId"] as SelectList)"
+                class="form-select">
+        </select>
+        <span asp-validation-for="ScreeningId" class="text-danger"></span>
+    </div>
+       <div class="mb-3">
+               <label asp-for="Row" class="form-label"></label>
+              <input asp-for="Row" type="number" min="1" max="7" class="form-control" />
+               <span asp-validation-for="Row" class="text-danger"></span>
+       
+    </div>
+
+       <div class="mb-3">
+               <label asp-for="Number" class="form-label"></label>
+               <input asp-for="Number" type="number" min="1" max="10" class="form-control" />
+               <span asp-validation-for="Number" class="text-danger"></span>
+        
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="IsAvailable" class="form-check-input" />
+        <label asp-for="IsAvailable" class="form-check-label"></label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

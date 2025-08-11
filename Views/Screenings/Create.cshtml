@@ -1,0 +1,50 @@
+﻿@model CineMate.Data.Entities.Screening
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Create Screening";
+    Layout = "_Layout";
+}
+
+<h1>Create Screening</h1>
+
+<form asp-controller="Screenings" asp-action="Create" method="post" class="mt-4">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <!-- Dropdown за Cinema -->
+    <div class="form-group mb-3">
+        <label asp-for="CinemaId" class="form-label"></label>
+        <select asp-for="CinemaId"
+                asp-items="@(ViewData["CinemaId"] as SelectList)"
+                class="form-control">
+            <option value="">-- Select Cinema --</option>
+        </select>
+        <span asp-validation-for="CinemaId" class="text-danger"></span>
+    </div>
+
+    <!-- Dropdown за Movie -->
+    <div class="form-group mb-3">
+        <label asp-for="MovieId" class="form-label"></label>
+        <select asp-for="MovieId"
+                asp-items="@(ViewData["MovieId"] as SelectList)"
+                class="form-control">
+            <option value="">-- Select Movie --</option>
+        </select>
+        <span asp-validation-for="MovieId" class="text-danger"></span>
+    </div>
+
+    <!-- Поле за StartTime -->
+    <div class="form-group mb-3">
+        <label asp-for="StartTime" class="form-label"></label>
+        <input asp-for="StartTime" type="datetime-local" class="form-control" />
+        <span asp-validation-for="StartTime" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a asp-controller="Screenings" asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

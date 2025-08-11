@@ -1,0 +1,44 @@
+﻿@model CineMate.Data.Entities.Screening
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Edit Screening";
+}
+
+<h1>Edit Screening</h1>
+
+<form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <div class="form-group">
+        <label asp-for="CinemaId"></label>
+        <select asp-for="CinemaId"
+                asp-items="@(ViewData["CinemaId"] as SelectList)"
+                class="form-control"></select>
+        <span asp-validation-for="CinemaId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="MovieId"></label>
+        <select asp-for="MovieId"
+                asp-items="@(ViewData["MovieId"] as SelectList)"
+                class="form-control"></select>
+        <span asp-validation-for="MovieId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="StartTime"></label>
+        <input asp-for="StartTime" type="datetime-local" class="form-control" />
+        <span asp-validation-for="StartTime" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">Back</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

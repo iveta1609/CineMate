@@ -1,0 +1,34 @@
+﻿@model IEnumerable<CineMate.Data.Entities.Reservation>
+@{
+    ViewData["Title"] = "My Reservations";
+}
+<h1>@ViewData["Title"]</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Movie</th>
+            <th>Cinema</th>
+            <th>Time</th>
+            <th>Price</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.Screening.Movie.Title</td>
+                <td>@r.Screening.Cinema.Name</td>
+                <td>@r.ReservationTime</td>
+                <td>@r.TotalPrice</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@r.Id">Details</a>
+                    @if (User.IsInRole("Administrator") || User.IsInRole("Operator"))
+                    {
+                        <a asp-action="Delete" asp-route-id="@r.Id">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

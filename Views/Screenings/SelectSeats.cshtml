@@ -1,0 +1,59 @@
+﻿@model CineMate.Models.SelectSeatsViewModel
+
+@{
+    ViewData["Title"] = $"Select Your Seats & Category for {Model.Screening.Movie.Title} ({Model.Screening.StartTime:dd.MM.yyyy HH:mm})";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<form asp-action="SelectSeats"
+      asp-controller="Screenings"
+      asp-route-id="@Model.Screening.Id"
+      method="post">
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    @* Показваме редовете и местата *@
+    @foreach (var rowGroup in Model.Seats.GroupBy(s => s.Row).OrderBy(g => g.Key))
+    {
+        <div class="d-flex align-items-center mb-2">
+            <strong class="me-2">Row @rowGroup.Key</strong>
+            @foreach (var seat in rowGroup.OrderBy(s => s.Number))
+            {
+                var cbId = $"seat_{seat.Id}";
+                <div class="form-check me-2">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="@cbId"
+                           name="selectedSeatIds"
+                           value="@seat.Id"
+                           @(seat.IsAvailable ? "" : "disabled") />
+                    <label class="form-check-label" for="@cbId">
+                        @seat.Number
+                    </label>
+                </div>
+            }
+        </div>
+    }
+    <span asp-validation-for="selectedSeatIds" class="text-danger"></span>
+
+    <div class="mb-4">
+        <label for="categorySelect" class="form-label">Ticket Category</label>
+        <select id="categorySelect"
+                name="SelectedCategory"
+                class="form-select">
+            <option value="">-- choose category --</option>
+            @foreach (var item in Model.Categories)
+            {
+                <option value="@item.Value"
+                        @(item.Value == Model.SelectedCategory ? "selected" : "")>
+                    @item.Text
+                </option>
+            }
+        </select>
+        <span asp-validation-for="SelectedCategory" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Reserve Selected Seats</button>
+</form>

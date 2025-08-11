@@ -1,0 +1,19 @@
+﻿@model CineMate.Data.Entities.Movie
+@{
+	ViewData["Title"] = "Delete Movie";
+}
+<h1>Delete Movie</h1>
+<dl class="row">
+	<dt class="col-sm-2">Title</dt>
+	<dd class="col-sm-10">@Model.Title</dd>
+	<dt class="col-sm-2">Director</dt>
+	<dd class="col-sm-10">@Model.Director</dd>
+	<dt class="col-sm-2">Year</dt>
+	<dd class="col-sm-10">@Model.ReleaseYear</dd>
+</dl>
+<form asp-action="DeleteConfirmed" method="post">
+	@Html.AntiForgeryToken()
+	<input type="hidden" asp-for="Id" />
+	<button type="submit" class="btn btn-danger">Delete</button>
+	<a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</form>

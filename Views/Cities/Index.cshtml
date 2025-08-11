@@ -1,0 +1,33 @@
+﻿@model IEnumerable<CineMate.Data.Entities.City>
+
+@{
+    ViewData["Title"] = "Cities";
+}
+
+<h1>Cities</h1>
+
+<p>
+    <a asp-action="Create">Create New City</a>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.First().Name)</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var city in Model)
+        {
+            <tr>
+                <td>@city.Name</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@city.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@city.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@city.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

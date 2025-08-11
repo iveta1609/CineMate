@@ -1,0 +1,28 @@
+﻿@model IEnumerable<CineMate.Data.Entities.Movie>
+@{
+    ViewData["Title"] = "Movies";
+}
+<h1>Movies</h1>
+<p><a asp-action="Create">Create New Movie</a></p>
+<table class="table">
+    <thead>
+        <tr><th>Title</th><th>Director</th><th>Year</th><th>Genre</th><th>Duration</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var m in Model)
+        {
+            <tr>
+                <td>@m.Title</td>
+                <td>@m.Director</td>
+                <td>@m.ReleaseYear</td>
+                <td>@m.Genre</td>
+                <td>@m.DurationMinutes min</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@m.Id">Edit</a> |
+                    <a asp-action="Details" asp-route-id="@m.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@m.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
