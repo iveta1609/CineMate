@@ -7,9 +7,13 @@
 
 <h1>Cinemas</h1>
 
-<p>
-    <a asp-action="Create">Create New Cinema</a>
-</p>
+@if (User.Identity?.IsAuthenticated == true
+   && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Create New</a>
+    </p>
+}
 
 <table class="table">
     <thead>
@@ -26,9 +30,13 @@
                 <td>@cinema.Name</td>
                 <td>@cinema.City.Name</td>
                 <td>
-                    <a asp-action="Edit" asp-route-id="@cinema.Id">Edit</a> |
-                    <a asp-action="Details" asp-route-id="@cinema.Id">Details</a> |
-                    <a asp-action="Delete" asp-route-id="@cinema.Id">Delete</a>
+                    @if (User.Identity?.IsAuthenticated == true
+                   && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
+                    {
+                        <a asp-action="Details" asp-route-id="@cinema.Id">Details</a>
+                        @: | <a asp-action="Edit" asp-route-id="@cinema.Id">Edit</a>
+                        @: | <a asp-action="Delete" asp-route-id="@cinema.Id">Delete</a>
+                    }
                 </td>
             </tr>
         }

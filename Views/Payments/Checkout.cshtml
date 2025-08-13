@@ -1,0 +1,76 @@
+﻿@model CineMate.Models.Payments.PaymentCheckoutVm
+@using CineMate.Models.Payments
+
+@{
+    ViewData["Title"] = $"Pay reservation #{Model.ReservationId}";
+    var form = ViewBag.Form as PaymentFormVm ?? new PaymentFormVm { ReservationId = Model.ReservationId };
+    string money(decimal v) => v.ToString("0.00") + " BGN";
+}
+
+<h2 class="mb-3">Pay reservation #@Model.ReservationId</h2>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Summary</div>
+            <div class="card-body">
+                <div class="mb-2"><div class="text-muted">Movie</div><div class="fw-semibold">@Model.MovieTitle</div></div>
+                <div class="mb-2"><div class="text-muted">Cinema</div><div class="fw-semibold">@Model.CinemaName</div></div>
+                <div class="mb-2"><div class="text-muted">Start</div><div class="fw-semibold">@Model.StartTime.ToString("dd.MM.yyyy • HH:mm")</div></div>
+                <hr />
+                <div class="d-flex justify-content-between">
+                    <div class="text-muted">Total</div>
+                    <div class="fw-bold">@money(Model.Amount)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Card details (mock)</div>
+            <div class="card-body">
+
+                <form asp-controller="Payments" asp-action="Pay" method="post" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <!-- ВАЖНО: скрито поле за резервацията -->
+                    <input type="hidden" name="ReservationId" value="@form.ReservationId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Cardholder</label>
+                        <input class="form-control" name="Cardholder" value="@form.Cardholder" autocomplete="cc-name" />
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">Card number</label>
+                        <!-- Не слагаме pattern/maxlength, за да не блокира submit-а; сървърът валидира 12 цифри + Luhn -->
+                        <input class="form-control" name="CardNumber" inputmode="numeric" autocomplete="cc-number"
+                               placeholder="12 digits (mock)" value="@form.CardNumber" />
+                        <div class="form-text">Any 12-digit number that passes Luhn will work (mock gateway).</div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Expiry</label>
+                            <input class="form-control" name="Expiry" placeholder="MM/YY" autocomplete="cc-exp" value="@form.Expiry" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CVC</label>
+                            <input class="form-control" name="Cvc" autocomplete="cc-csc" value="@form.Cvc" />
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            Pay @money(Model.Amount)
+                        </button>
+                        <a asp-controller="Reservations" asp-action="Details" asp-route-id="@Model.ReservationId"
+                           class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>

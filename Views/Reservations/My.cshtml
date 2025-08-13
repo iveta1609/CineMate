@@ -1,0 +1,181 @@
+﻿@model IEnumerable<CineMate.Data.Entities.Reservation>
+@using System.Globalization
+@using System.Text.RegularExpressions
+
+@{
+    ViewData["Title"] = "My reservations";
+    string scope = (string?)ViewBag.Scope ?? "upcoming";
+    string paid = (string?)ViewBag.Paid ?? "all";
+    string Active(string v, string a) => v == a ? "active" : "";
+    string D(DateTime dt) => dt.ToString("dd.MM.yyyy • HH:mm", CultureInfo.CurrentUICulture);
+}
+
+@section Styles {
+    <style>
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px
+        }
+
+            .filters .nav {
+                gap: 6px
+            }
+
+        .card-res {
+            border: 1px solid #eef0f3;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,.06)
+        }
+
+        .badge-paid {
+            background: #16a34a
+        }
+
+        .badge-unpaid {
+            background: #ef4444
+        }
+
+        .poster-frame {
+            position: relative;
+            background: #0b0e13
+        }
+
+        .poster {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            display: block
+        }
+
+        .movie-title {
+            font-weight: 800;
+            font-size: 1.05rem;
+            line-height: 1.2;
+            margin: 0
+        }
+
+        @@media (max-width: 575.98px) {
+            .movie-title {
+                font-size: 1rem
+            }
+        }
+    </style>
+}
+
+<h1 class="mb-3">My reservations</h1>
+
+<div class="filters">
+    <!-- Period -->
+    <ul class="nav nav-pills">
+        <li class="nav-item"><a class="nav-link @Active(scope,"upcoming")" asp-action="My" asp-route-scope="upcoming" asp-route-paid="@paid">Upcoming</a></li>
+        <li class="nav-item"><a class="nav-link @Active(scope,"past")" asp-action="My" asp-route-scope="past" asp-route-paid="@paid">Past</a></li>
+        <li class="nav-item"><a class="nav-link @Active(scope,"all")" asp-action="My" asp-route-scope="all" asp-route-paid="@paid">All</a></li>
+    </ul>
+
+    <!-- Paid status -->
+    <ul class="nav nav-pills">
+        <li class="nav-item"><a class="nav-link @Active(paid,"yes")" asp-action="My" asp-route-scope="@scope" asp-route-paid="yes">Paid</a></li>
+        <li class="nav-item"><a class="nav-link @Active(paid,"no")" asp-action="My" asp-route-scope="@scope" asp-route-paid="no">Unpaid</a></li>
+    </ul>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No reservations found for the selected filters.</div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var r in Model)
+        {
+            var movie = r.Screening?.Movie?.Title ?? "Movie";
+            var cinema = r.Screening?.Cinema?.Name ?? "Cinema";
+            var time = r.Screening?.StartTime ?? DateTime.MinValue;
+            var poster = ResolvePoster(r);
+
+            bool canModify = !r.IsPaid && time > DateTime.Now;
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card-res h-100">
+                    <div class="row g-0">
+                        <div class="col-4">
+                            <div class="poster-frame">
+                                <img class="poster"
+                                     src="@poster"
+                                     alt="@movie poster"
+                                     loading="lazy"
+                                     onerror="this.onerror=null;this.src='/images/posters/_placeholder.jpg';" />
+                            </div>
+                        </div>
+                        <div class="col-8">
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="movie-title">@movie</h5>
+                                    @if (r.IsPaid)
+                                    {
+                                        <span class="badge text-white badge-paid">Paid</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-white badge-unpaid">Unpaid</span>
+                                    }
+                                </div>
+
+                                <div class="text-muted small mt-1">@cinema</div>
+                                <div class="mt-2 fw-semibold">@D(time)</div>
+                                <div class="mt-1">Total: @r.TotalPrice.ToString("0.00") BGN</div>
+
+                                <div class="mt-3 d-flex flex-wrap gap-2">
+                                    <a class="btn btn-sm btn-outline-secondary"
+                                       asp-action="Details" asp-route-id="@r.Id">Details</a>
+
+                                    @if (canModify)
+                                    {
+                                        <a class="btn btn-sm btn-primary"
+                                           asp-controller="Payments"
+                                           asp-action="Checkout"
+                                           asp-route-reservationId="@r.Id">Pay now</a>
+
+                                        <form asp-controller="Reservations"
+                                              asp-action="Cancel"
+                                              method="post"
+                                              asp-antiforgery="true"
+                                              class="d-inline">
+                                            <input type="hidden" name="id" value="@r.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Cancel this reservation? Seats will be released.');">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@functions {
+    private string ResolvePoster(CineMate.Data.Entities.Reservation r)
+    {
+        var u = r?.Screening?.Movie?.PosterUrl;
+        if (!string.IsNullOrWhiteSpace(u))
+        {
+            u = u.Trim();
+            if (u.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return u;
+            if (u.StartsWith("~/") || u.StartsWith("/")) return Url.Content(u);
+            return Url.Content($"~/images/posters/{u}");
+        }
+
+        var title = r?.Screening?.Movie?.Title ?? "";
+        var slug = Regex.Replace(title.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        return Url.Content($"~/images/posters/{slug}.jpg");
+    }
+}

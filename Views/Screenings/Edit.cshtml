@@ -34,6 +34,14 @@
         <input asp-for="StartTime" type="datetime-local" class="form-control" />
         <span asp-validation-for="StartTime" class="text-danger"></span>
     </div>
+    <div class="mb-3">
+        <label class="form-label">Format</label>
+        <input asp-for="Format" class="form-control" placeholder="2d / 3d / imax" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Audio</label>
+        <input asp-for="Audio" class="form-control" placeholder="sub / dub" />
+    </div>
 
     <button type="submit" class="btn btn-primary">Save</button>
     <a asp-action="Index" class="btn btn-secondary ms-2">Back</a>

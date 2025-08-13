@@ -1,4 +1,5 @@
 ﻿using CineMate.Data.Entities.CineMate.Data.Entities;
+using Microsoft.AspNetCore.Identity;
 
 namespace CineMate.Data.Entities
 {
@@ -6,7 +7,8 @@ namespace CineMate.Data.Entities
     {
         public int Id { get; set; }
 
-        public string UserId { get; set; } = null!;
+        public string? UserId { get; set; } = null!;
+        public IdentityUser? User { get; set; }
 
         public int ScreeningId { get; set; }
         public Screening Screening { get; set; } = null!;
@@ -21,5 +23,9 @@ namespace CineMate.Data.Entities
         public List<Seat> Seats { get; set; }
 
         public string Category { get; set; } = null!;
+        public bool IsPaid { get; set; }               
+        public DateTime? PaidAt { get; set; }          
+        public string? PaymentRef { get; set; }         
+
     }
 }

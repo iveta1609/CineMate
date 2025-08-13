@@ -52,10 +52,11 @@ namespace CineMate.Controllers
             return View(city);
         }
 
-        // Create
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpGet("Create")]
         public IActionResult Create() => View();
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Name")] City city)
@@ -67,7 +68,7 @@ namespace CineMate.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // Edit
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpGet("Edit/{id:int}")]
         public async Task<IActionResult> Edit(int id)
         {
@@ -76,6 +77,7 @@ namespace CineMate.Controllers
             return View(city);
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost("Edit/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] City city)
@@ -98,7 +100,7 @@ namespace CineMate.Controllers
             }
         }
 
-        // Delete
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpGet("Delete/{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -107,6 +109,7 @@ namespace CineMate.Controllers
             return View(city);
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost("Delete/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)

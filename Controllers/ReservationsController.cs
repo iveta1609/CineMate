@@ -1,12 +1,15 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using CineMate.Data;
 using CineMate.Data.Entities;
-using CineMate.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using CineMate.Models;
 
 namespace CineMate.Controllers
 {
@@ -14,57 +17,58 @@ namespace CineMate.Controllers
     public class ReservationsController : Controller
     {
         private readonly CineMateDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public ReservationsController(CineMateDbContext context)
-            => _context = context;
+        public ReservationsController(CineMateDbContext context, UserManager<IdentityUser> userManager)
+        {
+            _context = context;
+            _userManager = userManager;
+        }
 
         // GET: Reservations
         public async Task<IActionResult> Index()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var query = _context.Reservations
-                                .Include(r => r.Screening)
-                                    .ThenInclude(s => s.Movie)
-                                .Include(r => r.Screening)
-                                    .ThenInclude(s => s.Cinema)
-                                .AsQueryable();
+            var userId = _userManager.GetUserId(User);
 
+            IQueryable<Reservation> q = _context.Reservations
+                .AsNoTracking()
+                .Include(r => r.Screening).ThenInclude(s => s.Movie)
+                .Include(r => r.Screening).ThenInclude(s => s.Cinema);
+
+            // Клиентът вижда само своите резервации; админ/оператор – всички
             if (User.IsInRole("Client"))
-                query = query.Where(r => r.UserId == userId);
+                q = q.Where(r => r.UserId == userId);
 
-            var list = await query.ToListAsync();
+            var list = await q.ToListAsync();
             return View(list);
         }
 
-        [Authorize(Roles = "Client,Administrator")]
+        [Authorize(Roles = "Client,Administrator,Operator")]
         public async Task<IActionResult> Details(int id)
         {
             var reservation = await _context.Reservations
-                  .Include(r => r.Screening)
-                      .ThenInclude(s => s.Movie)
-                  .Include(r => r.Screening)
-                      .ThenInclude(s => s.Cinema)
-                  .Include(r => r.ReservationSeats)
-                      .ThenInclude(rs => rs.Seat)
-                  .FirstOrDefaultAsync(r => r.Id == id);
+                .Include(r => r.Screening).ThenInclude(s => s.Movie)
+                .Include(r => r.Screening).ThenInclude(s => s.Cinema)
+                .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
+                .FirstOrDefaultAsync(r => r.Id == id);
 
             if (reservation == null) return NotFound();
 
-            return View(reservation);
+            // Клиентите могат да гледат само своите резервации
+            if (User.IsInRole("Client") && reservation.UserId != _userManager.GetUserId(User))
+                return Forbid();
 
-            // Създаваме списък от Seat обекти за view-а
-            var seats = reservation.ReservationSeats
+            // Списък със седалки за View-то
+            var seats = reservation.ReservationSeats?
                 .Select(rs => rs.Seat)
                 .OrderBy(s => s.Row).ThenBy(s => s.Number)
-                .ToList();
+                .ToList() ?? new List<Seat>();
 
             ViewData["SeatList"] = seats;
             return View(reservation);
         }
-    
 
-
-// GET: Reservations/Create?screeningId=5
+        // GET: Reservations/Create?screeningId=5
         [Authorize(Roles = "Client")]
         public IActionResult Create(int screeningId)
         {
@@ -83,12 +87,17 @@ namespace CineMate.Controllers
         {
             if (!ModelState.IsValid) return View(reservation);
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Challenge();
-            reservation.ReservationTime = System.DateTime.Now;
 
-            // Ако нямаш избрани конкретни места тук, остави TotalPrice 0 или го пресметни по логика
-            reservation.TotalPrice = reservation.ReservationSeats.Sum(rs => rs.Category.GetPrice());
+            reservation.UserId = userId;
+            reservation.ReservationTime = DateTime.Now;
+
+            // Ако не е подадена сума – пресмятаме по избраните места (ако ги има)
+            if (reservation.TotalPrice <= 0 && reservation.ReservationSeats != null && reservation.ReservationSeats.Any())
+            {
+                reservation.TotalPrice = reservation.ReservationSeats.Sum(rs => rs.Category.GetPrice());
+            }
 
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
@@ -106,21 +115,94 @@ namespace CineMate.Controllers
             return View(res);
         }
 
+        [Authorize]
+        public async Task<IActionResult> My(string scope = "upcoming", string paid = "all")
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // >>> ВАЖНО: q е IQueryable<Reservation>, не var
+            IQueryable<Reservation> q = _context.Reservations
+                .AsNoTracking()
+                .Where(r => r.UserId == userId)
+                .Include(r => r.Screening).ThenInclude(s => s.Movie)
+                .Include(r => r.Screening).ThenInclude(s => s.Cinema);
+
+            var today = DateTime.Today;
+            if (scope == "upcoming") q = q.Where(r => r.Screening.StartTime >= today);
+            else if (scope == "past") q = q.Where(r => r.Screening.StartTime < today);
+
+            if (paid == "yes") q = q.Where(r => r.IsPaid);
+            else if (paid == "no") q = q.Where(r => !r.IsPaid);
+
+            var list = await q.OrderByDescending(r => r.Screening.StartTime).ToListAsync();
+
+            ViewBag.Scope = scope;
+            ViewBag.Paid = paid;
+            return View(list);
+        }
+
         [HttpPost, ActionName("Delete")]
         [Authorize(Roles = "Administrator,Operator")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var res = await _context.Reservations
-                .Include(r => r.ReservationSeats)
-                .FirstOrDefaultAsync(r => r.Id == id);
+       .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
+       .FirstOrDefaultAsync(r => r.Id == id);
+
             if (res != null)
             {
-                // освобождаваме местата (ако маркираш при резервация)
+                foreach (var rs in res.ReservationSeats)
+                    if (rs.Seat != null) rs.Seat.IsAvailable = true;
+
+                _context.ReservationSeats.RemoveRange(res.ReservationSeats);
                 _context.Reservations.Remove(res);
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var res = await _context.Reservations
+                .Include(r => r.Screening)
+                .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (res == null) return NotFound();
+
+            var isOwner = res.UserId == userId;
+            var isAdminOrOp = User.IsInRole("Administrator") || User.IsInRole("Operator");
+            if (!isOwner && !isAdminOrOp) return Forbid();
+
+            if (res.IsPaid)
+            {
+                TempData["Err"] = "Paid reservations cannot be canceled online.";
+                return RedirectToAction(nameof(My));
+            }
+
+            if (res.Screening?.StartTime <= DateTime.Now)
+            {
+                TempData["Err"] = "The screening has already started/finished. Cancellation not possible.";
+                return RedirectToAction(nameof(My));
+            }
+
+            // освобождаваме местата
+            foreach (var rs in res.ReservationSeats)
+                if (rs.Seat != null) rs.Seat.IsAvailable = true;
+
+            _context.ReservationSeats.RemoveRange(res.ReservationSeats);
+            _context.Reservations.Remove(res);
+            await _context.SaveChangesAsync();
+
+            TempData["Ok"] = "Reservation canceled. Seats were released.";
+            return RedirectToAction(nameof(My), new { scope = "upcoming", paid = "no" });
+        }
+
     }
 }

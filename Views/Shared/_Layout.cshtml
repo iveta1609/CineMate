@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@*
+  Views/Shared/_Layout.cshtml
+*@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -10,6 +13,79 @@
     <link rel="stylesheet" href="~/CineMate.styles.css" asp-append-version="true" />
 
     @RenderSection("Styles", required: false)
+
+    <style>
+        /* ---- Custom: location picker styles ---- */
+        .navbar .form-select.form-select-sm {
+            padding-top: .25rem;
+            padding-bottom: .25rem;
+        }
+
+        #location-picker {
+            gap: .5rem;
+        }
+
+        /* ВАЖНО за Razor: @@media */
+        @@media (max-width: 576px) {
+            #location-picker {
+                width: 100%;
+            }
+
+                #location-picker .form-select {
+                    flex: 1;
+                    min-width: 0;
+                }
+        }
+
+        /* Стандартни помощни стилове (по желание) */
+        a.navbar-brand {
+            white-space: normal;
+            text-align: center;
+            word-break: break-all;
+        }
+
+        a {
+            color: #0077cc;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background-color: #1b6ec2;
+            border-color: #1861ac;
+        }
+
+        .nav-pills .nav-link.active, .nav-pills .show > .nav-link {
+            color: #fff;
+            background-color: #1b6ec2;
+            border-color: #1861ac;
+        }
+
+        .border-top {
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .border-bottom {
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .box-shadow {
+            box-shadow: 0 .25rem .75rem rgba(0,0,0,.05);
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            white-space: nowrap;
+            line-height: 60px;
+        }
+
+        /* cart icon tweak */
+        .nav-cart {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -24,15 +100,10 @@
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+                        @* place for left-side nav if ever needed *@
                     </ul>
 
-                    <!-- City / Cinema picker -->
+                    <!-- City / Cinema picker (дясно в навбара) -->
                     <div id="location-picker" class="d-flex align-items-center me-3">
                         <select id="citySelect" class="form-select form-select-sm" style="min-width:160px">
                             <option value="">Select city</option>
@@ -43,7 +114,17 @@
                     </div>
 
                     <!-- Auth menu -->
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav align-items-center">
+                        @if (User.Identity?.IsAuthenticated ?? false)
+                        {
+                            <!-- Cart FIRST (вляво от “My reservations”) -->
+                            <li class="nav-item me-2">
+                                <a class="nav-link nav-cart" asp-controller="Cart" asp-action="Index" title="Cart">🛒</a>
+                            </li>
+                            <li class="nav-item me-2">
+                                <a class="nav-link" asp-controller="Reservations" asp-action="My">My reservations</a>
+                            </li>
+                        }
                         @if (User.Identity?.IsAuthenticated ?? false)
                         {
                             <li class="nav-item">
@@ -89,52 +170,56 @@
             const LS_CITY   = 'cm_cityId';
             const LS_CINEMA = 'cm_cinemaId';
 
-            // чистим стари невалидни стойности
+            // премахни евентуални стари стойности
             if (localStorage.getItem(LS_CITY) === '-1') localStorage.removeItem(LS_CITY);
 
             function setCinemaDisabled(v){ cinemaSel.disabled = v; }
+            function addOption(sel, value, text){ const o=document.createElement('option'); o.value=value; o.textContent=text; sel.appendChild(o); return o; }
 
+            // --- Fallback-aware loader за кина ---
             function loadCinemas(cityId, preselect) {
                 setCinemaDisabled(true);
-                cinemaSel.innerHTML = '<option value="">Select cinema</option>';
+                cinemaSel.innerHTML = '';
+                addOption(cinemaSel, '', 'Select cinema');
+
                 if (!cityId) { setCinemaDisabled(false); return; }
 
+                // 1) Първо по ID
                 fetch(`/Cinemas/ByCity?cityId=${encodeURIComponent(cityId)}`)
-                    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                    .then(r => r.ok ? r.json() : [])
                     .then(list => {
-                        if (!Array.isArray(list) || list.length === 0) {
-                            const opt = document.createElement('option');
-                            opt.value = ''; opt.textContent = 'No cinemas';
-                            cinemaSel.appendChild(opt);
-                        } else {
-                            list.forEach(k => {
-                                const opt = document.createElement('option');
-                                opt.value = k.id; opt.textContent = k.name;
-                                cinemaSel.appendChild(opt);
-                            });
-                            if (preselect && list.some(x => String(x.id) === String(preselect))) {
-                                cinemaSel.value = preselect;
-                            }
+                        if (Array.isArray(list) && list.length > 0) {
+                            list.forEach(k => addOption(cinemaSel, k.id, k.name));
+                            if (preselect) cinemaSel.value = preselect;
+                            setCinemaDisabled(false);
+                            return;
                         }
+
+                        // 2) Резервно по ИМЕ (ако по ID е празно)
+                        const cityName = citySel.options[citySel.selectedIndex]?.text || '';
+                        if (!cityName) { addOption(cinemaSel, '', 'No cinemas'); setCinemaDisabled(false); return; }
+
+                        fetch(`/Cinemas/ByCityName?name=${encodeURIComponent(cityName)}`)
+                            .then(r => r.ok ? r.json() : [])
+                            .then(list2 => {
+                                if (Array.isArray(list2) && list2.length > 0) {
+                                    list2.forEach(k => addOption(cinemaSel, k.id, k.name));
+                                    if (preselect) cinemaSel.value = preselect;
+                                } else {
+                                    addOption(cinemaSel, '', 'No cinemas');
+                                }
+                                setCinemaDisabled(false);
+                            })
+                            .catch(() => { addOption(cinemaSel, '', 'No cinemas'); setCinemaDisabled(false); });
                     })
-                    .catch(err => {
-                        console.error('ByCity failed:', err);
-                        const opt = document.createElement('option');
-                        opt.value = ''; opt.textContent = 'Failed to load';
-                        cinemaSel.appendChild(opt);
-                    })
-                    .finally(() => setCinemaDisabled(false));
+                    .catch(() => { addOption(cinemaSel, '', 'Failed to load'); setCinemaDisabled(false); });
             }
 
-            // Зареждаме градовете
+            // --- Зареждане на градовете ---
             fetch('/Cities/List')
-                .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                .then(r => r.ok ? r.json() : [])
                 .then(cities => {
-                    cities.forEach(c => {
-                        const opt = document.createElement('option');
-                        opt.value = c.id; opt.textContent = c.name;
-                        citySel.appendChild(opt);
-                    });
+                    cities.forEach(c => addOption(citySel, c.id, c.name));
 
                     const savedCity   = localStorage.getItem(LS_CITY);
                     const savedCinema = localStorage.getItem(LS_CINEMA);
@@ -149,9 +234,9 @@
                         loadCinemas(effectiveCity, savedCinema);
                     }
                 })
-                .catch(err => console.error('Cities/List failed:', err));
+                .catch(() => { /* без градове => селекторът остава с "Select city" */ });
 
-            // City changed
+            // --- Промяна на град ---
             citySel.addEventListener('change', () => {
                 const cityId = citySel.value;
                 localStorage.setItem(LS_CITY, cityId || '');
@@ -159,7 +244,7 @@
                 loadCinemas(cityId, null);
             });
 
-            // Cinema changed -> navigate to program
+            // --- Промяна на кино -> към програмата ---
             cinemaSel.addEventListener('change', () => {
                 const cityId   = citySel.value;
                 const cinemaId = cinemaSel.value;
@@ -174,79 +259,3 @@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
-
-<style>
-    /* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-    for details on configuring this project to bundle and minify static web assets. */
-
-    a.navbar-brand {
-        white-space: normal;
-        text-align: center;
-        word-break: break-all;
-    }
-
-    a {
-        color: #0077cc;
-    }
-
-    .btn-primary {
-        color: #fff;
-        background-color: #1b6ec2;
-        border-color: #1861ac;
-    }
-
-    .nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-        color: #fff;
-        background-color: #1b6ec2;
-        border-color: #1861ac;
-    }
-
-    .border-top {
-        border-top: 1px solid #e5e5e5;
-    }
-
-    .border-bottom {
-        border-bottom: 1px solid #e5e5e5;
-    }
-
-    .box-shadow {
-        box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
-    }
-
-    button.accept-policy {
-        font-size: 1rem;
-        line-height: inherit;
-    }
-
-    .footer {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        white-space: nowrap;
-        line-height: 60px;
-    }
-
-    /* ---- Custom: location picker styles ---- */
-    .navbar .form-select.form-select-sm {
-        padding-top: .25rem;
-        padding-bottom: .25rem;
-    }
-
-    #location-picker {
-        gap: .5rem;
-    }
-
-    @@media (max-width: 576px) {
-        #location-picker
-
-    {
-        width: 100%;
-    }
-
-    #location-picker .form-select {
-        flex: 1;
-        min-width: 0;
-    }
-
-    }
-</style>

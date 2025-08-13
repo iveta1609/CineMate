@@ -1,15 +1,17 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using CineMate.Data;
 using CineMate.Data.Entities;
-using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CineMate.Controllers
 {
-    // По подразбиране админ; публични са маркирани с [AllowAnonymous]
+    // По подразбиране само админ; публичните екшъни са маркирани с [AllowAnonymous]
     [Authorize(Policy = "AdminOnly")]
     [Route("[controller]")]
     public class CinemasController : Controller
@@ -17,78 +19,57 @@ namespace CineMate.Controllers
         private readonly CineMateDbContext _context;
         public CinemasController(CineMateDbContext context) => _context = context;
 
-        // ========= JSON API =========
+        // План за „самоизлекуване“ – какви кина очакваме по град
+        private static readonly Dictionary<string, string[]> SeedPlan =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Sofia"] = new[]
+                {
+                    "CineMate Mall of Sofia",
+                    "CineMate Paradise Center",
+                    "CineMate Serdika Center",
+                    "CineMate The Mall",
+                    "CineMate Bulgaria Mall"
+                },
+                ["Plovdiv"] = new[]
+                {
+                    "CineMate Plovdiv Mall",
+                    "CineMate Markovo Tepe"
+                },
+                ["Varna"] = new[]
+                {
+                    "CineMate Grand Mall",
+                    "CineMate Varna Mall"
+                }
+            };
 
-        // Абсолютен път, за да няма объркване с route префикса на класа.
-        // GET /Cinemas/ByCity?cityId=1 -> [{ id, name }]
+        // ------------ JSON API: по CityId (първичен път) ------------
+        // Абсолютен маршрут -> /Cinemas/ByCity?cityId=1
         [AllowAnonymous]
         [HttpGet("/Cinemas/ByCity")]
         [Produces("application/json")]
         public async Task<IActionResult> ByCity(int cityId)
         {
             if (cityId <= 0)
-                return Json(System.Array.Empty<object>());
-
-            // 1) Първо – кината вързани към точния CityId
-            var direct = await _context.Cinemas
-        .Where(x => x.CityId == cityId)
-        .OrderBy(x => x.Name)
-        .Select(x => new { id = x.Id, name = x.Name })
-        .ToListAsync();
-
-            if (direct.Count > 0)
-                return Json(direct);
-
-            // 2) Няма кина за този CityId -> самовъзстановяване по име на града
-            var city = await _context.Cities.FirstOrDefaultAsync(c => c.Id == cityId);
-            if (city == null)
                 return Json(Array.Empty<object>());
 
-            // План с кината по град
-            var plan = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Sofia"] = new[]
-                {
-            "CineMate Mall of Sofia",
-            "CineMate Paradise Center",
-            "CineMate Serdika Center",
-            "CineMate The Mall",
-            "CineMate Bulgaria Mall"
-        },
-                ["Plovdiv"] = new[]
-                {
-            "CineMate Plovdiv Mall",
-            "CineMate Markovo Tepe"
-        },
-                ["Varna"] = new[]
-                {
-            "CineMate Grand Mall",
-            "CineMate Varna Mall"
-        }
-            };
+            // 1) Опитай да върнеш директно наличните кина
+            var list = await _context.Cinemas
+                .Where(x => x.CityId == cityId)
+                .OrderBy(x => x.Name)
+                .Select(x => new { id = x.Id, name = x.Name })
+                .ToListAsync();
 
-            // Ако името на града е в плана – добавяме липсващите кина за ТОЧНО този CityId
-            if (plan.TryGetValue(city.Name, out var cinemasForCity))
-            {
-                bool anyAdded = false;
+            if (list.Count > 0)
+                return Json(list);
 
-                foreach (var name in cinemasForCity)
-                {
-                    bool existsHere = await _context.Cinemas
-                        .AnyAsync(x => x.CityId == cityId && x.Name == name);
+            // 2) Няма кина за този CityId -> „самоизлекувай“ според името на града
+            var city = await _context.Cities.FirstOrDefaultAsync(c => c.Id == cityId);
+            if (city == null) return Json(Array.Empty<object>());
 
-                    if (!existsHere)
-                    {
-                        _context.Cinemas.Add(new Cinema { Name = name, CityId = cityId });
-                        anyAdded = true;
-                    }
-                }
+            await EnsureCinemasForCityId(cityId, city.Name);
 
-                if (anyAdded)
-                    await _context.SaveChangesAsync();
-            }
-
-            // 3) Връщаме резултата след авто-попълване
+            // 3) Върни отново – сега трябва да има
             var result = await _context.Cinemas
                 .Where(x => x.CityId == cityId)
                 .OrderBy(x => x.Name)
@@ -98,7 +79,78 @@ namespace CineMate.Controllers
             return Json(result);
         }
 
-        // ========= CRUD (UI) =========
+        // ------------ JSON API: по име на град (резервен път) ------------
+        // /Cinemas/ByCityName?name=Plovdiv
+        [AllowAnonymous]
+        [HttpGet("/Cinemas/ByCityName")]
+        [Produces("application/json")]
+        public async Task<IActionResult> ByCityName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Json(Array.Empty<object>());
+
+            // Вземаме всички градове със същото име (защото често има дубликати)
+            var cities = await _context.Cities
+                .Where(c => c.Name.ToLower() == name.ToLower())
+                .Select(c => new { c.Id, c.Name })
+                .ToListAsync();
+
+            if (cities.Count == 0)
+            {
+                // Ако няма такъв град – създай един и му добави кината
+                var newCity = new City { Name = name.Trim() };
+                _context.Cities.Add(newCity);
+                await _context.SaveChangesAsync();
+
+                await EnsureCinemasForCityId(newCity.Id, newCity.Name);
+                cities.Add(new { newCity.Id, newCity.Name });
+            }
+            else
+            {
+                // За всеки съществуващ град с това име – осигури кината
+                foreach (var c in cities)
+                    await EnsureCinemasForCityId(c.Id, c.Name);
+            }
+
+            // Върни кината за ВСИЧКИ градове с това име
+            var ids = cities.Select(c => c.Id).ToList();
+
+            var result = await _context.Cinemas
+                .Where(x => ids.Contains(x.CityId))
+                .OrderBy(x => x.Name)
+                .Select(x => new { id = x.Id, name = x.Name })
+                .Distinct()
+                .ToListAsync();
+
+            return Json(result);
+        }
+
+        // Помощник: гарантира, че за конкретен CityId има всички кина от SeedPlan[cityName]
+        private async Task EnsureCinemasForCityId(int cityId, string cityName)
+        {
+            if (!SeedPlan.TryGetValue(cityName ?? string.Empty, out var cinemas))
+                return; // ако градът не е в плана – нищо не правим
+
+            bool added = false;
+            foreach (var cinemaName in cinemas)
+            {
+                var exists = await _context.Cinemas
+                    .AnyAsync(x => x.CityId == cityId && x.Name == cinemaName);
+
+                if (!exists)
+                {
+                    _context.Cinemas.Add(new Cinema
+                    {
+                        Name = cinemaName,
+                        CityId = cityId
+                    });
+                    added = true;
+                }
+            }
+            if (added) await _context.SaveChangesAsync();
+        }
+
+        // ------------- CRUD UI -------------
 
         [AllowAnonymous]
         [HttpGet("")]
@@ -107,8 +159,7 @@ namespace CineMate.Controllers
         {
             var cinemas = await _context.Cinemas
                 .Include(c => c.City)
-                .OrderBy(c => c.City.Name)
-                .ThenBy(c => c.Name)
+                .OrderBy(c => c.City.Name).ThenBy(c => c.Name)
                 .ToListAsync();
 
             return View(cinemas);
@@ -126,6 +177,7 @@ namespace CineMate.Controllers
             return View(cinema);
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpGet("Create")]
         public IActionResult Create()
         {
@@ -133,6 +185,7 @@ namespace CineMate.Controllers
             return View(new Cinema());
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Cinema cinema)
@@ -148,6 +201,7 @@ namespace CineMate.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpGet("Edit/{id:int}")]
         public async Task<IActionResult> Edit(int id)
         {
@@ -158,6 +212,7 @@ namespace CineMate.Controllers
             return View(cinema);
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost("Edit/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Cinema cinema)
@@ -185,6 +240,7 @@ namespace CineMate.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpGet("Delete/{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -196,6 +252,7 @@ namespace CineMate.Controllers
             return View(cinema);
         }
 
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost("Delete/{id:int}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)

@@ -47,7 +47,29 @@
             </dd>
 
             <dt class="col-sm-4">Total Price</dt>
-            <dd class="col-sm-8">@Model.TotalPrice.ToString("0.00 лв.")</dd>
+            <dd class="col-sm-8">@Model.TotalPrice.ToString("0.00 BGN.")</dd>
+            @if (Model.IsPaid)
+            {
+                <div class="mt-3">
+                    <span class="badge bg-success">Paid</span>
+                    @if (!string.IsNullOrEmpty(Model.PaymentRef))
+                    {
+                        <span class="text-muted ms-2">Ref: @Model.PaymentRef</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="mt-3">
+                    <a class="btn btn-primary"
+                       asp-controller="Payments"
+                       asp-action="Checkout"
+                       asp-route-reservationId="@Model.Id">
+                        Pay now
+                    </a>
+                </div>
+            }
+
         </dl>
     </div>
 </div>

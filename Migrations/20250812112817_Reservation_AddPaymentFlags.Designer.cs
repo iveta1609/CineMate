@@ -4,6 +4,7 @@ using CineMate.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CineMate.Migrations
 {
     [DbContext(typeof(CineMateDbContext))]
-    partial class CineMateDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250812112817_Reservation_AddPaymentFlags")]
+    partial class Reservation_AddPaymentFlags
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,53 +24,6 @@ namespace CineMate.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CineMate.Data.Entities.CartItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("AddedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Count")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ReservationId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ScreeningId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SeatIdsCsv")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReservationId");
-
-                    b.HasIndex("ScreeningId");
-
-                    b.ToTable("CartItems");
-                });
 
             modelBuilder.Entity("CineMate.Data.Entities.CineMate.Data.Entities.ReservationSeat", b =>
                 {
@@ -418,13 +374,12 @@ namespace CineMate.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ScreeningId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Reservations");
                 });
@@ -437,14 +392,8 @@ namespace CineMate.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Audio")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("CinemaId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Format")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("MovieId")
                         .HasColumnType("int");
@@ -639,15 +588,15 @@ namespace CineMate.Migrations
                         {
                             Id = "e5555555-eeee-4eee-eeee-eeeeeeeeeee5",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "8bc34e78-4ee0-4916-8aeb-a29166aea4cf",
+                            ConcurrencyStamp = "b0911bca-be2e-406d-a5f0-d160fe2ef369",
                             Email = "admin@cinemate.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE.LOCAL",
                             NormalizedUserName = "ADMIN@CINEMATE.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAENnUss0yFm/TMjnsrqCrM+XXbaRWuUGP3qeJF1G9daRz/iR89vteU8/lyhs4FWfL6w==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEBgpMFF8t8LIeOEC7UVnyHXGcOSiqZ0qQ7GdjGBgQUbnxAZIgxhZ2NG3iDVwxNGi5A==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "b1770f4d-4333-467c-bbd0-1d2577fa7c48",
+                            SecurityStamp = "9afaa19c-04ac-47e0-a8c6-3becf20a634a",
                             TwoFactorEnabled = false,
                             UserName = "admin@cinemate.local"
                         },
@@ -655,15 +604,15 @@ namespace CineMate.Migrations
                         {
                             Id = "f6666666-ffff-4fff-ffff-fffffffffff6",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "d096cea5-3cf0-4795-a2af-0597bf355277",
+                            ConcurrencyStamp = "b0476020-3449-4f79-a139-1ef45cce9868",
                             Email = "operator@cinemate.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "OPERATOR@CINEMATE.LOCAL",
                             NormalizedUserName = "OPERATOR@CINEMATE.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAELIOKaEii3eZmvyqdODQAxzHXGNyjKbtNxbHnLOiKdVPomjwoC7SBWWI8K6jIUdiiA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEKkd04uaNGa5er014Ll1L57KIIQhKfHnAH0+qsygGXTdZfkd/YuUwe4wyqf6maWd+w==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "9611aa0f-fd13-416a-91e1-49a6a5c4e934",
+                            SecurityStamp = "9e21a976-bedd-408b-a520-72f798d5eacd",
                             TwoFactorEnabled = false,
                             UserName = "operator@cinemate.local"
                         },
@@ -671,15 +620,15 @@ namespace CineMate.Migrations
                         {
                             Id = "d4444444-dddd-4ddd-dddd-dddddddddddd",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "113b3696-1c7d-4f2d-a965-cc3f5b7a302f",
+                            ConcurrencyStamp = "76f6d359-7016-4758-b61b-220d7a62b607",
                             Email = "demo@cinemate.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "DEMO@CINEMATE.LOCAL",
                             NormalizedUserName = "DEMO@CINEMATE.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAEN/2Bkd8UvriTOD4l+baJedfNsFfEXdAgCMI2iOh0C8QutNKC1AG8uIxKY3Ghu2Cmg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGVVNy5pKVhFW3xihhixoLGrMNNZW+XFu1q4rUCu37Bdsu4mClmezirAnxfGIGCyMQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "6bad73a6-82f2-4601-80e6-82cc778cdb71",
+                            SecurityStamp = "c61af4b4-f717-4359-a0b5-8e83e0d18f38",
                             TwoFactorEnabled = false,
                             UserName = "demo@cinemate.local"
                         });
@@ -783,23 +732,6 @@ namespace CineMate.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("CineMate.Data.Entities.CartItem", b =>
-                {
-                    b.HasOne("CineMate.Data.Entities.Reservation", "Reservation")
-                        .WithMany()
-                        .HasForeignKey("ReservationId");
-
-                    b.HasOne("CineMate.Data.Entities.Screening", "Screening")
-                        .WithMany()
-                        .HasForeignKey("ScreeningId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Reservation");
-
-                    b.Navigation("Screening");
-                });
-
             modelBuilder.Entity("CineMate.Data.Entities.CineMate.Data.Entities.ReservationSeat", b =>
                 {
                     b.HasOne("CineMate.Data.Entities.Reservation", "Reservation")
@@ -849,13 +781,7 @@ namespace CineMate.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
                     b.Navigation("Screening");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CineMate.Data.Entities.Screening", b =>

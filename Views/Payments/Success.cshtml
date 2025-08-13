@@ -1,0 +1,11 @@
+﻿@{
+    ViewData["Title"] = "Payment successful";
+    var rid = (int)ViewBag.ReservationId;
+    var pref = (string)ViewBag.PaymentRef ?? "MOCK";
+}
+<div class="container mt-4">
+    <div class="alert alert-success">
+        <strong>Payment successful.</strong> Reference: <code>@pref</code>
+    </div>
+    <a class="btn btn-primary" asp-controller="Reservations" asp-action="Details" asp-route-id="@rid">Back to reservation</a>
+</div>

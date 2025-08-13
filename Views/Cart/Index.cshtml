@@ -1,0 +1,57 @@
+﻿@model IEnumerable<CineMate.Data.Entities.CartItem>
+@using System.Globalization
+@{
+    ViewData["Title"] = "My cart";
+    string D(DateTime dt) => dt.ToString("dd.MM.yyyy • HH:mm", CultureInfo.CurrentUICulture);
+    var total = (decimal)(ViewBag.Total ?? 0m);
+}
+<h1 class="mb-3">My cart</h1>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Your cart is empty.</div>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        @foreach (var it in Model)
+        {
+            var m = it.Screening?.Movie?.Title ?? "Movie";
+            var c = it.Screening?.Cinema?.Name ?? "Cinema";
+            var t = it.Screening?.StartTime ?? DateTime.MinValue;
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title m-0">@m</h5>
+                        <div class="text-muted small">@c</div>
+                        <div class="mt-1">@D(t)</div>
+                        <div class="mt-1">Seats: @it.SeatIdsCsv</div>
+                        <div class="mt-1">Category: @it.Category</div>
+                        <div class="mt-2 fw-semibold">Total: @it.TotalPrice.ToString("0.00") BGN</div>
+
+                        <div class="mt-3 d-flex gap-2">
+                            <form asp-controller="Cart" asp-action="ReserveAndPay" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@it.Id" />
+                                <button type="submit" class="btn btn-primary btn-sm">Reserve &amp; Pay</button>
+                            </form>
+
+
+                            <!-- Remove остава POST -->
+                            <form method="post" action="@Url.Action("Remove","Cart")" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@it.Id" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-end">
+        <div class="fs-5">Cart total: <b>@total.ToString("0.00") BGN</b></div>
+    </div>
+}

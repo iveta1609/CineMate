@@ -93,22 +93,23 @@
         <div class="d-flex gap-3 flex-wrap">
             <label class="form-check">
                 <input type="radio" class="form-check-input" asp-for="SelectedCategory" value="Adult" />
-                <span class="form-check-label">Adult (16 лв.)</span>
+                <span class="form-check-label">Adult (16 BGN)</span>
             </label>
             <label class="form-check">
                 <input type="radio" class="form-check-input" asp-for="SelectedCategory" value="Teen" />
-                <span class="form-check-label">Teen (11 лв.)</span>
+                <span class="form-check-label">Teen (11 BGN)</span>
             </label>
             <label class="form-check">
                 <input type="radio" class="form-check-input" asp-for="SelectedCategory" value="Kids" />
-                <span class="form-check-label">Kids (7 лв.)</span>
+                <span class="form-check-label">Kids (7 BGN)</span>
             </label>
         </div>
         <span asp-validation-for="SelectedCategory" class="text-danger"></span>
     </div>
 
     <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary">Reserve</button>
+        <button type="submit" name="mode" value="reserve" class="btn btn-primary">Reserve now</button>
+        <button type="submit" name="mode" value="cart" class="btn btn-outline-secondary">Add to cart</button>
         <a asp-action="Details" asp-route-id="@Model.ScreeningId" class="btn btn-secondary">Back</a>
     </div>
 </form>

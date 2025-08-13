@@ -16,7 +16,9 @@ namespace CineMate.Data.Entities
         public int MovieId { get; set; }
         [ValidateNever]
         public Movie Movie { get; set; } = null!;
-       
+        public string? Format { get; set; }  
+        public string? Audio { get; set; }
+
         [Required]
         [Display(Name = "Start Time")]
         [DataType(DataType.DateTime)]

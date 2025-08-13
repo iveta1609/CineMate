@@ -1,28 +1,185 @@
 ﻿@model IEnumerable<CineMate.Data.Entities.Movie>
+@using System.Text.RegularExpressions
+
 @{
     ViewData["Title"] = "Movies";
+    string Slug(string title)
+    {
+        var s = title?.ToLowerInvariant() ?? "";
+        s = Regex.Replace(s, @"[^a-z0-9]+", "-").Trim('-');
+        return s;
+    }
+    string Poster(string title) => $"/images/posters/{Slug(title)}.jpg";
 }
-<h1>Movies</h1>
-<p><a asp-action="Create">Create New Movie</a></p>
-<table class="table">
-    <thead>
-        <tr><th>Title</th><th>Director</th><th>Year</th><th>Genre</th><th>Duration</th><th></th></tr>
-    </thead>
-    <tbody>
-        @foreach (var m in Model)
-        {
-            <tr>
-                <td>@m.Title</td>
-                <td>@m.Director</td>
-                <td>@m.ReleaseYear</td>
-                <td>@m.Genre</td>
-                <td>@m.DurationMinutes min</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@m.Id">Edit</a> |
-                    <a asp-action="Details" asp-route-id="@m.Id">Details</a> |
-                    <a asp-action="Delete" asp-route-id="@m.Id">Delete</a>
-                </td>
-            </tr>
+
+@section Styles {
+    <style>
+        .movie-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
         }
-    </tbody>
-</table>
+
+        .movie-search .input-group {
+            max-width: 520px;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat( auto-fill, minmax(180px,1fr) );
+            gap: 16px;
+        }
+
+        .movie-card {
+            border: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 8px 30px rgba(0,0,0,.08);
+            transition: .2s transform,.2s box-shadow;
+        }
+
+            .movie-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 16px 40px rgba(0,0,0,.12);
+            }
+
+        .movie-poster {
+            width: 100%;
+            aspect-ratio: 2 / 3;
+            object-fit: cover;
+            display: block;
+        }
+
+        .movie-body {
+            padding: 12px 12px 14px;
+        }
+
+        .movie-title {
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            font-size: 0.98rem;
+            line-height: 1.25;
+        }
+
+        .movie-meta {
+            color: #6b7280;
+            font-size: 0.86rem;
+        }
+
+        .movie-actions a {
+            font-size: .84rem;
+        }
+
+        #movieCount {
+            min-width: 48px;
+            text-align: right;
+        }
+    </style>
+}
+
+<h1 class="mb-2">Movies</h1>
+
+<div class="movie-toolbar">
+    <form class="movie-search w-100" onsubmit="return false;">
+        <div class="input-group">
+            <span class="input-group-text">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </span>
+            <input id="movieSearch" type="search" class="form-control" placeholder="Search by title..." autocomplete="off" />
+            <button type="button" id="clearSearch" class="btn btn-outline-secondary" style="display:none;">Clear</button>
+        </div>
+    </form>
+
+    <div class="d-flex align-items-center gap-2">
+        <div id="movieCount" class="text-muted small"></div>
+
+        @if (User.Identity?.IsAuthenticated == true &&
+        (User.IsInRole("Administrator") || User.IsInRole("Operator")))
+        {
+            <a class="btn btn-sm btn-success"
+               asp-controller="Movies" asp-action="Create">
+                + Add movie
+            </a>
+        }
+    </div>
+</div>
+
+<div id="movieGrid" class="movie-grid">
+    @foreach (var m in Model)
+    {
+        <div class="movie-card" data-search="@((m.Title ?? "").ToLowerInvariant())">
+            <img loading="lazy"
+                 class="movie-poster"
+                 src="@Poster(m.Title)"
+                 alt="@m.Title poster"
+                 onerror="this.onerror=null;this.src='/images/posters/now-you-see-me-now-you-dont.jpg';" />
+            <div class="movie-body">
+                <div class="movie-title">@m.Title</div>
+                <div class="movie-meta">
+                    @m.Genre • @m.DurationMinutes min
+                </div>
+                <div class="movie-actions mt-2 d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-outline-primary"
+                       asp-controller="Movies" asp-action="Details" asp-route-id="@m.Id">
+                        Details
+                    </a>
+
+                    @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
+                    {
+                        <a class="btn btn-sm btn-outline-secondary"
+                           asp-controller="Movies" asp-action="Edit" asp-route-id="@m.Id">
+                            Edit
+                        </a>
+                        <a class="btn btn-sm btn-outline-danger"
+                           asp-controller="Movies" asp-action="Delete" asp-route-id="@m.Id">
+                            Delete
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function(){
+          const input = document.getElementById('movieSearch');
+          const clear = document.getElementById('clearSearch');
+          const cards = Array.from(document.querySelectorAll('#movieGrid .movie-card'));
+          const countEl = document.getElementById('movieCount');
+
+          function apply(){
+            const q = (input.value || '').trim().toLowerCase();
+            let visible = 0;
+            cards.forEach(card => {
+              const hay = card.dataset.search || '';
+              const show = !q || hay.includes(q);
+              card.style.display = show ? '' : 'none';
+              if (show) visible++;
+            });
+            countEl.textContent = visible + ' / ' + cards.length;
+            clear.style.display = q ? '' : 'none';
+          }
+
+          let t;
+          input.addEventListener('input', function(){
+            clearTimeout(t);
+            t = setTimeout(apply, 150);
+          });
+          clear.addEventListener('click', function(){
+            input.value = '';
+            input.focus();
+            apply();
+          });
+
+          apply();
+        })();
+    </script>
+}

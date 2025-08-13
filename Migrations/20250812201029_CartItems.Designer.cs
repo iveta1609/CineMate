@@ -4,6 +4,7 @@ using CineMate.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CineMate.Migrations
 {
     [DbContext(typeof(CineMateDbContext))]
-    partial class CineMateDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250812201029_CartItems")]
+    partial class CartItems
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,9 +43,6 @@ namespace CineMate.Migrations
                     b.Property<int>("Count")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ReservationId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ScreeningId")
                         .HasColumnType("int");
 
@@ -61,8 +61,6 @@ namespace CineMate.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ReservationId");
 
                     b.HasIndex("ScreeningId");
 
@@ -639,15 +637,15 @@ namespace CineMate.Migrations
                         {
                             Id = "e5555555-eeee-4eee-eeee-eeeeeeeeeee5",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "8bc34e78-4ee0-4916-8aeb-a29166aea4cf",
+                            ConcurrencyStamp = "68bbddae-56c6-4a6a-bade-699d1ed0fefa",
                             Email = "admin@cinemate.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@CINEMATE.LOCAL",
                             NormalizedUserName = "ADMIN@CINEMATE.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAENnUss0yFm/TMjnsrqCrM+XXbaRWuUGP3qeJF1G9daRz/iR89vteU8/lyhs4FWfL6w==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOX2wscPAN++EufVMFlLzhceg4ZrXuMnUWXSy80eY+HdEoTTt4zU8uajaA4FLBZYww==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "b1770f4d-4333-467c-bbd0-1d2577fa7c48",
+                            SecurityStamp = "3eeddd37-7c85-411e-9b99-f2ee33b8a154",
                             TwoFactorEnabled = false,
                             UserName = "admin@cinemate.local"
                         },
@@ -655,15 +653,15 @@ namespace CineMate.Migrations
                         {
                             Id = "f6666666-ffff-4fff-ffff-fffffffffff6",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "d096cea5-3cf0-4795-a2af-0597bf355277",
+                            ConcurrencyStamp = "45aaefc7-fa7c-48b3-88eb-9758698e68a4",
                             Email = "operator@cinemate.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "OPERATOR@CINEMATE.LOCAL",
                             NormalizedUserName = "OPERATOR@CINEMATE.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAELIOKaEii3eZmvyqdODQAxzHXGNyjKbtNxbHnLOiKdVPomjwoC7SBWWI8K6jIUdiiA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAECEHXU2jrlGJzSsszcoWjvKNxfx90eUhEKTlJSU/+7buI8SR8DIMbtyjLf9S/BrDQQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "9611aa0f-fd13-416a-91e1-49a6a5c4e934",
+                            SecurityStamp = "0fbec615-3123-4ce4-8155-a0a8d6758f7d",
                             TwoFactorEnabled = false,
                             UserName = "operator@cinemate.local"
                         },
@@ -671,15 +669,15 @@ namespace CineMate.Migrations
                         {
                             Id = "d4444444-dddd-4ddd-dddd-dddddddddddd",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "113b3696-1c7d-4f2d-a965-cc3f5b7a302f",
+                            ConcurrencyStamp = "5f14bec8-abe7-4d85-8a1a-edd35cf3d2f5",
                             Email = "demo@cinemate.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "DEMO@CINEMATE.LOCAL",
                             NormalizedUserName = "DEMO@CINEMATE.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAEN/2Bkd8UvriTOD4l+baJedfNsFfEXdAgCMI2iOh0C8QutNKC1AG8uIxKY3Ghu2Cmg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEFpp972TA0Z4Gx/dd4y0FM5HtpSkSnSeQjhESyXRsoV3N1ZZCYGs+HCltdpORBM0sQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "6bad73a6-82f2-4601-80e6-82cc778cdb71",
+                            SecurityStamp = "dc9a4621-4e69-4bba-984f-261afa5d6840",
                             TwoFactorEnabled = false,
                             UserName = "demo@cinemate.local"
                         });
@@ -785,17 +783,11 @@ namespace CineMate.Migrations
 
             modelBuilder.Entity("CineMate.Data.Entities.CartItem", b =>
                 {
-                    b.HasOne("CineMate.Data.Entities.Reservation", "Reservation")
-                        .WithMany()
-                        .HasForeignKey("ReservationId");
-
                     b.HasOne("CineMate.Data.Entities.Screening", "Screening")
                         .WithMany()
                         .HasForeignKey("ScreeningId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Reservation");
 
                     b.Navigation("Screening");
                 });

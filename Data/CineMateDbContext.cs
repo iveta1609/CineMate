@@ -22,6 +22,7 @@ namespace CineMate.Data
         public DbSet<Reservation> Reservations { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<ReservationSeat> ReservationSeats { get; set; } = null!;
+        public DbSet<CartItem> CartItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

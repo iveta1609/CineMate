@@ -30,12 +30,13 @@ namespace CineMate.Controllers
 
         // everyone
         [AllowAnonymous]
-        public async Task<IActionResult> Index(int? cityId, int? cinemaId)
+        public async Task<IActionResult> Index(int? cityId, int? cinemaId, string? format, string? audio)
         {
-            var q = _context.Screenings
-                .Include(s => s.Cinema).ThenInclude(c => c.City)
+            IQueryable<Screening> q = _context.Screenings
+                .AsNoTracking()
                 .Include(s => s.Movie)
-                .AsQueryable();
+                .Include(s => s.Cinema)
+                    .ThenInclude(c => c.City);
 
             if (cityId.HasValue)
                 q = q.Where(s => s.Cinema.CityId == cityId.Value);
@@ -43,16 +44,21 @@ namespace CineMate.Controllers
             if (cinemaId.HasValue)
                 q = q.Where(s => s.CinemaId == cinemaId.Value);
 
+            if (!string.IsNullOrWhiteSpace(format))
+                q = q.Where(s => s.Format != null && s.Format.ToLower() == format.ToLower());
+
+            if (!string.IsNullOrWhiteSpace(audio))
+                q = q.Where(s => s.Audio != null && s.Audio.ToLower() == audio.ToLower());
+
             var list = await q
+                .Where(s => s.StartTime >= DateTime.Today)
                 .OrderBy(s => s.StartTime)
                 .ToListAsync();
 
-            ViewBag.SelectedCityId = cityId;
-            ViewBag.SelectedCinemaId = cinemaId;
-
+            ViewBag.Format = format ?? "";
+            ViewBag.Audio = audio ?? "";
             return View(list);
         }
-
 
         [AllowAnonymous]
         public async Task<IActionResult> Details(int id)
@@ -153,17 +159,23 @@ namespace CineMate.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var screening = await _context.Screenings.FindAsync(id);
-            if (screening != null)
+            var res = await _context.Reservations
+                .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (res != null)
             {
-                _context.Screenings.Remove(screening);
+                foreach (var rs in res.ReservationSeats)
+                    if (rs.Seat != null) rs.Seat.IsAvailable = true;
+
+                _context.ReservationSeats.RemoveRange(res.ReservationSeats);
+                _context.Reservations.Remove(res);
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
         }
 
-        //
-        // === STEP 1: pick your seats (with category) ===
+        // === STEP 1: pick your seats ===
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> SelectSeats(int id)
@@ -176,7 +188,7 @@ namespace CineMate.Controllers
         [Authorize(Policy = "ClientOnly")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SelectSeats(int id, int[]? SelectedSeatIds, string? SelectedCategory)
+        public async Task<IActionResult> SelectSeats(int id, int[]? SelectedSeatIds, string? SelectedCategory, string mode = "reserve")
         {
             var chosenSeatIds = SelectedSeatIds ?? Array.Empty<int>();
 
@@ -195,7 +207,7 @@ namespace CineMate.Controllers
                 return View(vmInvalid);
             }
 
-            // Проверка на наличност
+            // наличност
             var seatsToTake = await _context.Seats
                 .Where(s => s.ScreeningId == id && chosenSeatIds.Contains(s.Id))
                 .ToListAsync();
@@ -210,7 +222,6 @@ namespace CineMate.Controllers
                 return View(vmRetry);
             }
 
-            // Цена по категория
             decimal unitPrice = SelectedCategory switch
             {
                 "Adult" => 16m,
@@ -219,39 +230,52 @@ namespace CineMate.Controllers
                 _ => 16m
             };
 
-            // Потребител
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-                return Challenge();
+            if (string.IsNullOrEmpty(userId)) return Challenge();
 
-            // Създай резервация
+            // --- Add to cart ---
+            if (string.Equals(mode, "cart", StringComparison.OrdinalIgnoreCase))
+            {
+                var item = new CartItem
+                {
+                    UserId = userId,
+                    ScreeningId = id,
+                    SeatIdsCsv = string.Join(",", chosenSeatIds),
+                    Category = SelectedCategory!,
+                    TotalPrice = unitPrice * chosenSeatIds.Length,
+                    AddedAt = DateTime.UtcNow
+                };
+                _context.CartItems.Add(item);
+                await _context.SaveChangesAsync();
+
+                TempData["Ok"] = "Added to cart.";
+                return RedirectToAction("Index", "Cart");
+            }
+
+            // --- Reserve now -> към плащане ---
             var reservation = new Reservation
             {
                 ScreeningId = id,
                 UserId = userId,
-                Category = SelectedCategory!, // вече валидирано
+                Category = SelectedCategory!,
                 TotalPrice = unitPrice * seatsToTake.Count,
                 ReservationTime = DateTime.Now
             };
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            // Запиши избраните места (ReservationSeats изисква CategoryName NOT NULL)
-            var reservationSeats = seatsToTake.Select(s => new ReservationSeat
+            _context.ReservationSeats.AddRange(seatsToTake.Select(s => new ReservationSeat
             {
                 ReservationId = reservation.Id,
                 SeatId = s.Id,
-                CategoryName = SelectedCategory!,  // ФИКС за грешката ти
-            }).ToList();
+                CategoryName = SelectedCategory!
+            }));
 
-            _context.ReservationSeats.AddRange(reservationSeats);
-
-            // Маркирай местата като заети
             seatsToTake.ForEach(s => s.IsAvailable = false);
-
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Details", "Reservations", new { id = reservation.Id });
+            // директно към Checkout
+            return RedirectToAction("Checkout", "Payments", new { reservationId = reservation.Id });
         }
 
         private async Task<SelectSeatsViewModel?> BuildSelectSeatsVm(int id)
@@ -264,6 +288,8 @@ namespace CineMate.Controllers
 
             if (screening == null) return null;
 
+            await EnsureSeatsForScreeningAsync(screening, 7, 10);
+
             var seats = screening.Seats
                 .OrderBy(s => s.Row)
                 .ThenBy(s => s.Number)
@@ -275,18 +301,36 @@ namespace CineMate.Controllers
                 Screening = screening,
                 Seats = seats,
                 Categories = new List<SelectListItem>
-        {
-            new SelectListItem("Adult (16 лв.)", "Adult"),
-            new SelectListItem("Teen (11 лв.)",  "Teen"),
-            new SelectListItem("Kids (7 лв.)",   "Kids"),
-        }
+                {
+                    new SelectListItem("Adult (16 лв.)", "Adult"),
+                    new SelectListItem("Teen (11 лв.)",  "Teen"),
+                    new SelectListItem("Kids (7 лв.)",   "Kids"),
+                }
             };
         }
 
+        private async Task EnsureSeatsForScreeningAsync(Screening screening, int defaultRows, int defaultCols)
+        {
+            if (screening.Seats != null && screening.Seats.Any())
+                return;
 
+            var toAdd = new List<Seat>();
+            for (int r = 1; r <= defaultRows; r++)
+                for (int c = 1; c <= defaultCols; c++)
+                    toAdd.Add(new Seat
+                    {
+                        ScreeningId = screening.Id,
+                        Row = r,
+                        Number = c,
+                        IsAvailable = true
+                    });
 
-        //
-        // === STEP 2 (optional flow kept): choose category + confirm seats + price ===
+            _context.Seats.AddRange(toAdd);
+            await _context.SaveChangesAsync();
+
+            await _context.Entry(screening).Collection(s => s.Seats).LoadAsync();
+        }
+
         [Authorize(Roles = "Client,Administrator")]
         [HttpGet]
         public async Task<IActionResult> ReserveSeats(int id, int[] selectedSeatIds)
@@ -361,7 +405,6 @@ namespace CineMate.Controllers
                 _ => 16m
             };
 
-            // ensure seats still available
             var seatsToTake = await _context.Seats
                 .Where(s => s.ScreeningId == vm.ScreeningId && vm.SelectedSeatIds.Contains(s.Id))
                 .ToListAsync();

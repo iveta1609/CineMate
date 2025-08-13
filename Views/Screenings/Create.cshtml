@@ -41,6 +41,16 @@
         <span asp-validation-for="StartTime" class="text-danger"></span>
     </div>
 
+    <div class="mb-3">
+        <label class="form-label">Format</label>
+        <input asp-for="Format" class="form-control" placeholder="2d / 3d / imax" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Audio</label>
+        <input asp-for="Audio" class="form-control" placeholder="sub / dub" />
+    </div>
+
+
     <button type="submit" class="btn btn-success">Save</button>
     <a asp-controller="Screenings" asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
 </form>

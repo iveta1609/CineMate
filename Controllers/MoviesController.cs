@@ -18,10 +18,23 @@ namespace CineMate.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string q)
         {
-            var movies = await _context.Movies.ToListAsync();
-            return View(movies);
+            var movies = _context.Movies.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                q = q.Trim();
+                var like = $"%{q}%";
+                movies = movies.Where(m => EF.Functions.Like(m.Title, like));
+                ViewBag.Query = q; 
+            }
+
+            var list = await movies
+                .OrderBy(m => m.Title)
+                .ToListAsync();
+
+            return View(list); 
         }
 
         [AllowAnonymous]
@@ -35,13 +48,28 @@ namespace CineMate.Controllers
             return View(movie);
         }
 
-        // GET: /Movies/Create
+        [AllowAnonymous]
+        public async Task<IActionResult> DetailsByTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return NotFound();
+
+            var movie = await _context.Movies
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Title == title);
+
+            if (movie == null) return NotFound();
+
+            return RedirectToAction(nameof(Details), new { id = movie.Id });
+        }
+
+
+        [Authorize(Policy = "OperatorOrAdmin")]
         public IActionResult Create()
         {
             return View(new Movie());
         }
 
-        // POST: /Movies/Create
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Title,Director,ReleaseYear,Genre,Synopsis,DurationMinutes,MainActors")] Movie movie)
@@ -55,7 +83,7 @@ namespace CineMate.Controllers
             return View(movie);
         }
 
-        // GET: /Movies/Edit/5
+        [Authorize(Policy = "OperatorOrAdmin")]
         public async Task<IActionResult> Edit(int id)
         {
             var movie = await _context.Movies.FindAsync(id);
@@ -65,7 +93,7 @@ namespace CineMate.Controllers
             return View(movie);
         }
 
-        // POST: /Movies/Edit/5
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Director,ReleaseYear,Genre,Synopsis,DurationMinutes,MainActors")] Movie movie)
@@ -91,7 +119,7 @@ namespace CineMate.Controllers
             return View(movie);
         }
 
-        // GET: /Movies/Delete/5
+        [Authorize(Policy = "OperatorOrAdmin")]
         public async Task<IActionResult> Delete(int id)
         {
             var movie = await _context.Movies
@@ -102,7 +130,7 @@ namespace CineMate.Controllers
             return View(movie);
         }
 
-        // POST: /Movies/Delete/5
+        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
