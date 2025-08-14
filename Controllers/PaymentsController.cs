@@ -53,7 +53,6 @@ namespace CineMate.Controllers
             return View(vm);
         }
 
-        // POST: /Payments/Pay
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Pay(PaymentFormVm form)
@@ -66,55 +65,47 @@ namespace CineMate.Controllers
             if (r == null) return NotFound();
             if (r.IsPaid) return RedirectToAction("Details", "Reservations", new { id = r.Id });
 
-            // ===== Минимална "mock" валидация =====
-            var digits = OnlyDigits(form.CardNumber);
+            // ---- Само точно 16 цифри + Luhn ----
+            var digits = new string((form.CardNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+
             if (string.IsNullOrWhiteSpace(form.Cardholder) ||
                 string.IsNullOrWhiteSpace(form.Expiry) ||
                 string.IsNullOrWhiteSpace(form.Cvc) ||
                 form.Cvc.Trim().Length < 3 ||
-                digits.Length != 12 ||            // Точно 12 цифри
-                !PassesLuhn(digits))              // Luhn за реалистичност
+                digits.Length != 16 )           
             {
-                TempData["Err"] = "Payment failed: please check your card details.";
+                TempData["Err"] = "Payment failed: please check your card details (16 digits required).";
                 return RedirectToAction(nameof(Checkout), new { reservationId = r.Id });
             }
-            // ======================================
+            // ------------------------------------
 
-            // Успешно (фиктивно)
             r.IsPaid = true;
             r.PaidAt = DateTime.UtcNow;
-            r.PaymentRef = $"MOCK-{DateTime.UtcNow:yyyyMMddHHmmss}-{_rnd.Next(1000, 9999)}";
+            r.PaymentRef = $"MOCK-{DateTime.UtcNow:yyyyMMddHHmmss}-{new Random().Next(1000, 9999)}";
             await _context.SaveChangesAsync();
 
-            // Изпращане на имейл потвърждение
             try
             {
-                // намери имейла на собственика на резервацията
                 string? to = null;
-
                 if (!string.IsNullOrEmpty(r.UserId))
                 {
                     var u = await _userManager.FindByIdAsync(r.UserId);
                     to = u?.Email;
                 }
-                // fallback: ако текущият е логнат и има имейл
                 if (string.IsNullOrWhiteSpace(to) && User?.Identity?.IsAuthenticated == true)
                 {
                     var u2 = await _userManager.GetUserAsync(User);
                     to = u2?.Email;
                 }
-
                 if (!string.IsNullOrWhiteSpace(to))
                     await _email.SendReservationReceiptAsync(to, r);
             }
-            catch
-            {
-                // не блокирай потребителя, ако Mailtrap/SMPP падне
-            }
+            catch { /* не блокирай */ }
 
             TempData["Ok"] = $"Payment successful. Ref: {r.PaymentRef}";
             return RedirectToAction("Success", new { reservationId = r.Id });
         }
+
 
         public async Task<IActionResult> Success(int reservationId)
         {

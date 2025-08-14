@@ -1,0 +1,35 @@
+﻿@model string
+
+@{
+    // инжектираме CSS само веднъж за цялата заявка
+    var key = "PageHeroStyleIncluded";
+    var included = (Context.Items[key] as bool?) ?? false;
+    if (!included)
+    {
+        Context.Items[key] = true;
+    }
+}
+
+@if (!((Context.Items["PageHeroStyleIncluded"] as bool?) ?? false))
+{
+    <style>
+        .page-hero {
+            background: radial-gradient(1200px 600px at 85% -50%, rgba(168,85,247,.25), transparent 60%), radial-gradient(900px 500px at 10% -40%, rgba(56,189,248,.25), transparent 55%), #0f172a;
+            color: #fff;
+            border-radius: 20px;
+            padding: 28px 28px;
+            margin: 16px 0 20px;
+            box-shadow: 0 10px 30px rgba(2,6,23,.28)
+        }
+
+            .page-hero h1 {
+                margin: 0;
+                font-weight: 800;
+                letter-spacing: .5px
+            }
+    </style>
+}
+
+<div class="page-hero">
+    <h1>@Model</h1>
+</div>

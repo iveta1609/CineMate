@@ -3,8 +3,27 @@
 @{
     ViewData["Title"] = "Screening Details";
 }
+@section Styles {
+    <style>
+        .page-hero {
+            border-radius: 18px;
+            padding: 28px 24px;
+            margin: 6px 0 18px;
+            background: radial-gradient(120% 140% at 10% 10%, #1f2742 0%, #1b1f36 45%, #2a1e3f 100%);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(20,22,45,.22);
+        }
 
+            .page-hero h1 {
+                margin: 0;
+                font-weight: 800;
+                letter-spacing: .3px;
+            }
+    </style>
+}
+<div class="page-hero">
 <h1>Screening Details</h1>
+</div>
 
 <dl class="row">
     <dt class="col-sm-2">Cinema</dt>

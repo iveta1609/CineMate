@@ -27,3 +27,100 @@ body {
     padding: 0;
     font-size: 0.9rem;
 }
+
+/* --- Page hero (shared) --- */
+.hero-band {
+    color: #fff;
+    border-radius: 22px;
+    padding: 22px 24px;
+    margin-bottom: 16px;
+    background: radial-gradient(1200px 700px at 95% -20%, rgba(128,64,180,.35) 0%, rgba(23,27,45,.6) 40%, rgba(12,18,32,.95) 90%), linear-gradient(135deg,#101626 0%, #121a2d 60%, #0b1220 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.18);
+}
+
+.hero-title {
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1.1;
+    margin: 0
+}
+
+.hero-sub {
+    opacity: .8;
+    margin-top: 6px
+}
+
+.hero-actions {
+    display: flex;
+    gap: .5rem
+}
+
+    .hero-actions .btn {
+        border-radius: 10px;
+        padding: 6px 12px
+    }
+
+@media (max-width:576px) {
+    .hero-band {
+        padding: 16px
+    }
+
+    .hero-title {
+        font-size: 1.5rem
+    }
+
+    .hero-actions {
+        margin-top: 10px
+    }
+}
+
+/* === CineMate top bar (градиент без заобляне) === */
+.cinemate-topbar {
+    background: radial-gradient(1200px 400px at 100% 0, rgba(121, 80, 242, .25), rgba(13,110,253,.18), transparent), linear-gradient(135deg, #1f2937, #111827 60%, #0b1020);
+    border-radius: 0; /* <-- без заобляне */
+    color: #fff;
+    border: 0;
+    box-shadow: 0 10px 30px rgba(15,23,42,.25);
+    padding: .6rem .75rem;
+    z-index: 1030; /* за всеки случай при overlay-и */
+}
+
+    /* входни елементи върху тъмната лента */
+    .cinemate-topbar .form-select,
+    .cinemate-topbar .form-control {
+        background: rgba(255,255,255,.08);
+        border-color: rgba(255,255,255,.25);
+        color: #fff; /* бял текст в самия select (затворен) */
+    }
+
+        .cinemate-topbar .form-select:focus,
+        .cinemate-topbar .form-control:focus {
+            background: rgba(255,255,255,.12);
+            border-color: rgba(255,255,255,.45);
+            box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+            color: #fff;
+        }
+
+    /* ВАЖНО: опциите в падащото меню да са видими (черен текст на бял фон) */
+    .cinemate-topbar select option {
+        color: #111 !important;
+        background: #fff !important;
+    }
+
+    /* линковете в навигацията да са светли */
+    .cinemate-topbar .navbar-brand,
+    .cinemate-topbar .nav-link {
+        color: #fff !important;
+    }
+
+        .cinemate-topbar .nav-link:hover,
+        .cinemate-topbar .navbar-brand:hover {
+            color: #e7eaf6 !important;
+        }
+
+    /* малко по-стегната вътрешност */
+    .cinemate-topbar .container {
+        padding-left: .5rem;
+        padding-right: .5rem;
+    }
+

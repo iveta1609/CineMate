@@ -13,6 +13,9 @@ namespace CineMate.Data.Seed
         /// </summary>
         public static async Task SeedCitiesAndCinemasAsync(CineMateDbContext db)
         {
+
+            
+
             // Град -> списък с кина (по молове)
             var plan = new Dictionary<string, string[]>
             {
@@ -67,5 +70,7 @@ namespace CineMate.Data.Seed
 
             await db.SaveChangesAsync();
         }
+
+
     }
 }

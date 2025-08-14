@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "Movies";
+
     string Slug(string title)
     {
         var s = title?.ToLowerInvariant() ?? "";
@@ -14,16 +15,9 @@
 
 @section Styles {
     <style>
-        .movie-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .movie-search .input-group {
-            max-width: 520px;
+        /* Page-specific tweaks (cards & grid) */
+        .hero-search .input-group {
+            max-width: 640px;
         }
 
         .movie-grid {
@@ -74,35 +68,40 @@
         }
 
         #movieCount {
-            min-width: 48px;
+            min-width: 64px;
             text-align: right;
+            color: #cbd5e1;
         }
     </style>
 }
 
-<h1 class="mb-2">Movies</h1>
+<!-- HERO: Movies -->
+<div class="hero-band d-flex flex-wrap align-items-start justify-content-between">
+    <div class="me-3">
+        <h1 class="hero-title">Movies</h1>
+        <div class="hero-sub">Browse our catalogue</div>
+    </div>
 
-<div class="movie-toolbar">
-    <form class="movie-search w-100" onsubmit="return false;">
-        <div class="input-group">
-            <span class="input-group-text">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-            </span>
-            <input id="movieSearch" type="search" class="form-control" placeholder="Search by title..." autocomplete="off" />
-            <button type="button" id="clearSearch" class="btn btn-outline-secondary" style="display:none;">Clear</button>
-        </div>
-    </form>
+    <div class="d-flex align-items-center gap-3 flex-grow-1 hero-search" style="max-width:720px">
+        <form class="w-100" onsubmit="return false;">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </span>
+                <input id="movieSearch" type="search" class="form-control" placeholder="Search by title..." autocomplete="off" />
+                <button type="button" id="clearSearch" class="btn btn-outline-light" style="display:none;">Clear</button>
+            </div>
+        </form>
 
-    <div class="d-flex align-items-center gap-2">
-        <div id="movieCount" class="text-muted small"></div>
+        <div id="movieCount" class="small"></div>
 
         @if (User.Identity?.IsAuthenticated == true &&
         (User.IsInRole("Administrator") || User.IsInRole("Operator")))
         {
-            <a class="btn btn-sm btn-success"
+            <a class="btn btn-success btn-sm"
                asp-controller="Movies" asp-action="Create">
                 + Add movie
             </a>
@@ -130,7 +129,8 @@
                         Details
                     </a>
 
-                    @if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
+                    @if (User.Identity?.IsAuthenticated == true &&
+                   (User.IsInRole("Administrator") || User.IsInRole("Operator")))
                     {
                         <a class="btn btn-sm btn-outline-secondary"
                            asp-controller="Movies" asp-action="Edit" asp-route-id="@m.Id">
@@ -149,37 +149,37 @@
 
 @section Scripts {
     <script>
-        (function(){
-          const input = document.getElementById('movieSearch');
-          const clear = document.getElementById('clearSearch');
-          const cards = Array.from(document.querySelectorAll('#movieGrid .movie-card'));
-          const countEl = document.getElementById('movieCount');
+        (function () {
+            const input = document.getElementById('movieSearch');
+            const clear = document.getElementById('clearSearch');
+            const cards = Array.from(document.querySelectorAll('#movieGrid .movie-card'));
+            const countEl = document.getElementById('movieCount');
 
-          function apply(){
-            const q = (input.value || '').trim().toLowerCase();
-            let visible = 0;
-            cards.forEach(card => {
-              const hay = card.dataset.search || '';
-              const show = !q || hay.includes(q);
-              card.style.display = show ? '' : 'none';
-              if (show) visible++;
+            function apply() {
+                const q = (input.value || '').trim().toLowerCase();
+                let visible = 0;
+                cards.forEach(card => {
+                    const hay = card.dataset.search || '';
+                    const show = !q || hay.includes(q);
+                    card.style.display = show ? '' : 'none';
+                    if (show) visible++;
+                });
+                countEl.textContent = `${visible} / ${cards.length}`;
+                clear.style.display = q ? '' : 'none';
+            }
+
+            let t;
+            input.addEventListener('input', function () {
+                clearTimeout(t);
+                t = setTimeout(apply, 150);
             });
-            countEl.textContent = visible + ' / ' + cards.length;
-            clear.style.display = q ? '' : 'none';
-          }
+            clear.addEventListener('click', function () {
+                input.value = '';
+                input.focus();
+                apply();
+            });
 
-          let t;
-          input.addEventListener('input', function(){
-            clearTimeout(t);
-            t = setTimeout(apply, 150);
-          });
-          clear.addEventListener('click', function(){
-            input.value = '';
-            input.focus();
             apply();
-          });
-
-          apply();
         })();
     </script>
 }

@@ -5,7 +5,11 @@
     string D(DateTime dt) => dt.ToString("dd.MM.yyyy • HH:mm", CultureInfo.CurrentUICulture);
     var total = (decimal)(ViewBag.Total ?? 0m);
 }
-<h1 class="mb-3">My cart</h1>
+<!-- HERO: My cart -->
+<div class="hero-band">
+    <h1 class="hero-title mb-0">My cart</h1>
+    <div class="hero-sub">Items you’ve saved for checkout</div>
+</div>
 
 @if (!Model.Any())
 {

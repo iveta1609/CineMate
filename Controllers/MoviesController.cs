@@ -1,146 +1,170 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using CineMate.Data;
 using CineMate.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CineMate.Controllers
 {
-    [Authorize(Policy = "OperatorOrAdmin")]
     public class MoviesController : Controller
     {
         private readonly CineMateDbContext _context;
-
-        public MoviesController(CineMateDbContext context)
-        {
-            _context = context;
-        }
+        public MoviesController(CineMateDbContext ctx) => _context = ctx;
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index(string q)
+        public async Task<IActionResult> Index(string? search)
         {
-            var movies = _context.Movies.AsNoTracking();
+            var q = _context.Movies.AsNoTracking();
 
-            if (!string.IsNullOrWhiteSpace(q))
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                q = q.Trim();
-                var like = $"%{q}%";
-                movies = movies.Where(m => EF.Functions.Like(m.Title, like));
-                ViewBag.Query = q; 
+                var s = search.Trim().ToLower();
+                q = q.Where(m =>
+                    (m.Title ?? "").ToLower().Contains(s) ||
+                    (m.Director ?? "").ToLower().Contains(s));
             }
 
-            var list = await movies
-                .OrderBy(m => m.Title)
-                .ToListAsync();
-
-            return View(list); 
+            var list = await q.OrderBy(m => m.Title).ToListAsync();
+            return View(list);
         }
 
         [AllowAnonymous]
         public async Task<IActionResult> Details(int id)
         {
             var movie = await _context.Movies
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (movie == null)
-                return NotFound();
 
+            if (movie == null) return NotFound();
             return View(movie);
         }
 
         [AllowAnonymous]
+        [HttpGet("DetailsByTitle")]
         public async Task<IActionResult> DetailsByTitle(string title)
         {
-            if (string.IsNullOrWhiteSpace(title)) return NotFound();
+            if (string.IsNullOrWhiteSpace(title))
+                return RedirectToAction(nameof(Index));
 
+            var t = title.Trim().ToLower();
+
+            // 1) точен мач (без чувствителност към регистър)
             var movie = await _context.Movies
                 .AsNoTracking()
-                .FirstOrDefaultAsync(m => m.Title == title);
+                .FirstOrDefaultAsync(m => m.Title.ToLower() == t);
 
-            if (movie == null) return NotFound();
+            // 2) ако няма – търсене по съдържание
+            if (movie == null)
+            {
+                movie = await _context.Movies
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.Title.ToLower().Contains(t));
+            }
 
+            if (movie == null)
+                return NotFound(); // по желание може да върнеш View с "не е намерен"
+
+            // пренасочваме към нормалната страница за детайли
             return RedirectToAction(nameof(Details), new { id = movie.Id });
         }
 
+        [Authorize(Roles = "Administrator,Operator")]
+        public IActionResult Create() => View();
 
-        [Authorize(Policy = "OperatorOrAdmin")]
-        public IActionResult Create()
-        {
-            return View(new Movie());
-        }
-
-        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost]
+        [Authorize(Roles = "Administrator,Operator")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Director,ReleaseYear,Genre,Synopsis,DurationMinutes,MainActors")] Movie movie)
+        public async Task<IActionResult> Create(Movie movie)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Movies.Add(movie);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(movie);
+            if (!ModelState.IsValid) return View(movie);
+
+            _context.Movies.Add(movie);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Policy = "OperatorOrAdmin")]
+        // ===================== EDIT =====================
+
+        [Authorize(Roles = "Administrator,Operator")]
         public async Task<IActionResult> Edit(int id)
         {
             var movie = await _context.Movies.FindAsync(id);
-            if (movie == null)
-                return NotFound();
-
+            if (movie == null) return NotFound();
             return View(movie);
         }
 
-        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost]
+        [Authorize(Roles = "Administrator,Operator")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Director,ReleaseYear,Genre,Synopsis,DurationMinutes,MainActors")] Movie movie)
+        public async Task<IActionResult> Edit(int id, Movie movie)
         {
-            if (id != movie.Id)
-                return BadRequest();
+            if (id != movie.Id) return BadRequest();
+            if (!ModelState.IsValid) return View(movie);
 
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(movie);
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await _context.Movies.AnyAsync(m => m.Id == id))
-                        return NotFound();
-                    throw;
-                }
-            }
-            return View(movie);
+            _context.Update(movie);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
-        [Authorize(Policy = "OperatorOrAdmin")]
+        // ===================== DELETE =====================
+
+        [Authorize(Roles = "Administrator,Operator")]
         public async Task<IActionResult> Delete(int id)
         {
             var movie = await _context.Movies
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (movie == null)
-                return NotFound();
 
+            if (movie == null) return NotFound();
             return View(movie);
         }
 
-        [Authorize(Policy = "OperatorOrAdmin")]
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Administrator,Operator")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var movie = await _context.Movies.FindAsync(id);
-            if (movie != null)
+            var movie = await _context.Movies
+                .Include(m => m.Screenings)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null) return RedirectToAction(nameof(Index));
+
+            // Ако има прожекции към филма – чистим зависимостите
+            if (movie.Screenings != null && movie.Screenings.Any())
             {
-                _context.Movies.Remove(movie);
-                await _context.SaveChangesAsync();
+                var screeningIds = movie.Screenings.Select(s => s.Id).ToList();
+
+                // Резервации + техните седалки
+                var reservations = await _context.Reservations
+                    .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
+                    .Where(r => screeningIds.Contains(r.ScreeningId))
+                    .ToListAsync();
+
+                // Освобождаваме седалките
+                foreach (var r in reservations)
+                    foreach (var rs in r.ReservationSeats)
+                        if (rs.Seat != null) rs.Seat.IsAvailable = true;
+
+                _context.ReservationSeats.RemoveRange(reservations.SelectMany(r => r.ReservationSeats));
+                _context.Reservations.RemoveRange(reservations);
+
+                // Седалки към прожекциите
+                var seats = await _context.Seats
+                    .Where(s => screeningIds.Contains(s.ScreeningId))
+                    .ToListAsync();
+                _context.Seats.RemoveRange(seats);
+
+                // Самите прожекции
+                _context.Screenings.RemoveRange(movie.Screenings);
             }
+
+            _context.Movies.Remove(movie);
+            await _context.SaveChangesAsync();
+
+            TempData["Ok"] = "Movie deleted.";
             return RedirectToAction(nameof(Index));
         }
     }

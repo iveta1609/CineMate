@@ -1,44 +1,51 @@
 ﻿@model IEnumerable<CineMate.Data.Entities.Cinema>
-@using Microsoft.AspNetCore.Mvc.Rendering
 
 @{
     ViewData["Title"] = "Cinemas";
 }
 
-<h1>Cinemas</h1>
-
-@if (User.Identity?.IsAuthenticated == true
-   && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
-{
-    <p>
-        <a asp-action="Create" class="btn btn-primary">Create New</a>
-    </p>
+@section Styles {
+    <style>
+        .page-hero {
+            background: linear-gradient(90deg,#232746,#41223f);
+            border-radius: 16px;
+            padding: 18px 22px;
+            color: #fff;
+            margin-bottom: 16px
+        }
+    </style>
 }
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>City</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var cinema in Model)
-        {
+<div class="page-hero">
+    <h1 class="m-0">Cinemas</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No cinemas available.</div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
             <tr>
-                <td>@cinema.Name</td>
-                <td>@cinema.City.Name</td>
-                <td>
-                    @if (User.Identity?.IsAuthenticated == true
-                   && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
-                    {
-                        <a asp-action="Details" asp-route-id="@cinema.Id">Details</a>
-                        @: | <a asp-action="Edit" asp-route-id="@cinema.Id">Edit</a>
-                        @: | <a asp-action="Delete" asp-route-id="@cinema.Id">Delete</a>
-                    }
-                </td>
+                <th>Name</th>
+                <th>City</th>
+                <th style="width:220px">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>@c.Name</td>
+                    <td>@c.City?.Name</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@c.Id">Details</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@c.Id">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

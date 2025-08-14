@@ -4,38 +4,47 @@
     ViewData["Title"] = "Cities";
 }
 
-<h1>Cities</h1>
-
-@if (User.Identity?.IsAuthenticated == true
-   && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
-{
-    <p>
-        <a asp-action="Create" class="btn btn-primary">Create New</a>
-    </p>
+@section Styles {
+    <style>
+        .page-hero {
+            background: linear-gradient(90deg,#232746,#41223f);
+            border-radius: 16px;
+            padding: 18px 22px;
+            color: #fff;
+            margin-bottom: 16px
+        }
+    </style>
 }
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>@Html.DisplayNameFor(model => model.First().Name)</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var city in Model)
-        {
+<div class="page-hero">
+    <h1 class="m-0">Cities</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No cities available.</div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
             <tr>
-                <td>@city.Name</td>
-                <td>
-                    @if (User.Identity?.IsAuthenticated == true
-                   && (User.IsInRole("Administrator") || User.IsInRole("Operator")))
-                    {
-                        <a asp-action="Details" asp-route-id="@city.Id">Details</a>
-                        @: | <a asp-action="Edit" asp-route-id="@city.Id">Edit</a>
-                        @: | <a asp-action="Delete" asp-route-id="@city.Id">Delete</a>
-                    }
-                </td>
+                <th>Name</th>
+                <th style="width:180px">Actions</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var city in Model)
+            {
+                <tr>
+                    <td>@city.Name</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@city.Id">Details</a>
+                        <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@city.Id">Edit</a>
+                        @* Няма Delete *@
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

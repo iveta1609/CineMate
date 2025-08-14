@@ -1,20 +1,33 @@
 ﻿@model CineMate.Data.Entities.Cinema
-
 @{
-    ViewData["Title"] = "Cinema Details";
+    ViewData["Title"] = "Cinema details";
 }
 
-<h1>Cinema Details</h1>
+@section Styles {
+    <style>
+        .page-hero {
+            background: linear-gradient(90deg,#232746,#41223f);
+            border-radius: 16px;
+            padding: 18px 22px;
+            color: #fff;
+            margin-bottom: 16px
+        }
+    </style>
+}
+
+<div class="page-hero">
+    <h2 class="m-0">Cinema details</h2>
+</div>
 
 <dl class="row">
     <dt class="col-sm-2">Name</dt>
     <dd class="col-sm-10">@Model.Name</dd>
+
     <dt class="col-sm-2">City</dt>
-    <dd class="col-sm-10">@Model.City.Name</dd>
+    <dd class="col-sm-10">@Model.City?.Name</dd>
 </dl>
 
-<p>
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
-    <a asp-action="Index" class="btn btn-secondary">Back</a>
-</p>
-
+<div class="d-flex gap-2">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Edit</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+</div>

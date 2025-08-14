@@ -4,8 +4,10 @@
 
 @{
     ViewData["Title"] = "My reservations";
-    string scope = (string?)ViewBag.Scope ?? "upcoming";
-    string paid = (string?)ViewBag.Paid ?? "all";
+    // period tabs
+    string scope = (string?)ViewBag.Scope ?? "upcoming";   // upcoming | past | all
+    // status tabs
+    string paid = (string?)ViewBag.Paid ?? "all";        // yes | no | all (тук ползваме yes/no)
     string Active(string v, string a) => v == a ? "active" : "";
     string D(DateTime dt) => dt.ToString("dd.MM.yyyy • HH:mm", CultureInfo.CurrentUICulture);
 }
@@ -14,7 +16,7 @@
     <style>
         .filters {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             flex-wrap: wrap;
             margin-bottom: 12px
         }
@@ -23,19 +25,29 @@
                 gap: 6px
             }
 
+        /* статус табове – оцветяваме само АКТИВНИТЕ бутони */
+        .status-tabs .nav-link {
+            border: 1px solid #e5e7eb
+        }
+
+            .status-tabs .nav-link.active.paid {
+                background: #16a34a;
+                border-color: #16a34a;
+                color: #fff
+            }
+
+            .status-tabs .nav-link.active.inprog {
+                background: #f59e0b;
+                border-color: #f59e0b;
+                color: #111827
+            }
+
+        /* карти */
         .card-res {
             border: 1px solid #eef0f3;
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0,0,0,.06)
-        }
-
-        .badge-paid {
-            background: #16a34a
-        }
-
-        .badge-unpaid {
-            background: #ef4444
         }
 
         .poster-frame {
@@ -57,28 +69,60 @@
             margin: 0
         }
 
-        @@media (max-width: 575.98px) {
-            .movie-title {
-                font-size: 1rem
-            }
+        /* бейджове върху картите */
+        .badge-paid {
+            background: #16a34a
+        }
+
+        .badge-progress {
+            background: #f59e0b;
+            color: #111827
+        }
+
+        @@media (max-width:575.98px) {
+            .movie-title
+
+        {
+            font-size: 1rem
+        }
+
         }
     </style>
 }
 
-<h1 class="mb-3">My reservations</h1>
+<!-- HERO: My reservations -->
+<div class="hero-band">
+    <h1 class="hero-title mb-0">My reservations</h1>
+    <div class="hero-sub">Filter by period and status</div>
+</div>
 
 <div class="filters">
-    <!-- Period -->
+    <!-- ПЕРИОД – табове -->
     <ul class="nav nav-pills">
-        <li class="nav-item"><a class="nav-link @Active(scope,"upcoming")" asp-action="My" asp-route-scope="upcoming" asp-route-paid="@paid">Upcoming</a></li>
-        <li class="nav-item"><a class="nav-link @Active(scope,"past")" asp-action="My" asp-route-scope="past" asp-route-paid="@paid">Past</a></li>
-        <li class="nav-item"><a class="nav-link @Active(scope,"all")" asp-action="My" asp-route-scope="all" asp-route-paid="@paid">All</a></li>
+        <li class="nav-item">
+            <a class="nav-link @Active(scope,"upcoming")"
+               asp-action="My" asp-route-scope="upcoming" asp-route-paid="@paid">Upcoming</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @Active(scope,"past")"
+               asp-action="My" asp-route-scope="past" asp-route-paid="@paid">Past</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @Active(scope,"all")"
+               asp-action="My" asp-route-scope="all" asp-route-paid="@paid">All</a>
+        </li>
     </ul>
 
-    <!-- Paid status -->
-    <ul class="nav nav-pills">
-        <li class="nav-item"><a class="nav-link @Active(paid,"yes")" asp-action="My" asp-route-scope="@scope" asp-route-paid="yes">Paid</a></li>
-        <li class="nav-item"><a class="nav-link @Active(paid,"no")" asp-action="My" asp-route-scope="@scope" asp-route-paid="no">Unpaid</a></li>
+    <!-- СТАТУС – табове (само Paid / In progress; премахнат е „All“, за да няма 2×All) -->
+    <ul class="nav nav-pills status-tabs">
+        <li class="nav-item">
+            <a class="nav-link @(paid=="yes" ? "active paid" : "")"
+               asp-action="My" asp-route-scope="@scope" asp-route-paid="yes">Paid</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(paid=="no" ? "active inprog" : "")"
+               asp-action="My" asp-route-scope="@scope" asp-route-paid="no">In progress</a>
+        </li>
     </ul>
 </div>
 
@@ -95,8 +139,6 @@ else
             var cinema = r.Screening?.Cinema?.Name ?? "Cinema";
             var time = r.Screening?.StartTime ?? DateTime.MinValue;
             var poster = ResolvePoster(r);
-
-            bool canModify = !r.IsPaid && time > DateTime.Now;
 
             <div class="col-12 col-md-6 col-lg-4">
                 <div class="card-res h-100">
@@ -120,7 +162,7 @@ else
                                     }
                                     else
                                     {
-                                        <span class="badge text-white badge-unpaid">Unpaid</span>
+                                        <span class="badge badge-progress">In progress</span>
                                     }
                                 </div>
 
@@ -132,25 +174,19 @@ else
                                     <a class="btn btn-sm btn-outline-secondary"
                                        asp-action="Details" asp-route-id="@r.Id">Details</a>
 
-                                    @if (canModify)
+                                    @* Показваме Pay/Cancel само за неплатени и бъдещи *@
+                                    @if (!r.IsPaid && time >= DateTime.Now)
                                     {
                                         <a class="btn btn-sm btn-primary"
-                                           asp-controller="Payments"
-                                           asp-action="Checkout"
+                                           asp-controller="Payments" asp-action="Checkout"
                                            asp-route-reservationId="@r.Id">Pay now</a>
 
-                                        <form asp-controller="Reservations"
-                                              asp-action="Cancel"
-                                              method="post"
-                                              asp-antiforgery="true"
-                                              class="d-inline">
-                                            <input type="hidden" name="id" value="@r.Id" />
-                                            <button type="submit"
-                                                    class="btn btn-sm btn-outline-danger"
-                                                    onclick="return confirm('Cancel this reservation? Seats will be released.');">
-                                                Cancel
-                                            </button>
-                                        </form>
+                                        <a class="btn btn-sm btn-outline-danger"
+                                           asp-controller="Screenings" asp-action="Cancel"
+                                           asp-route-id="@r.Id"
+                                           onclick="return confirm('Cancel this reservation and release seats?');">
+                                            Cancel
+                                        </a>
                                     }
                                 </div>
                             </div>

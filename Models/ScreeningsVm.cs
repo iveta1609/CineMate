@@ -9,8 +9,7 @@
         public string HallName { get; set; } = "";
         public string City { get; set; } = "";
         public string CinemaName { get; set; } = "";
-        public string Format { get; set; } = "2D"; // 2D | 3D | IMAX
-        public string Audio { get; set; } = "Sub"; // Sub | Dub
+     
         public int RuntimeMin { get; set; }        // optional
         public decimal? Price { get; set; }        // optional
     }
@@ -26,7 +25,6 @@
         public string CinemaName { get; set; } = "";
         public string City { get; set; } = "";
         public List<ScreeningsDayVm> Days { get; set; } = new();
-        public string? SelectedFormat { get; set; }
-        public string? SelectedAudio { get; set; }
+        
     }
 }

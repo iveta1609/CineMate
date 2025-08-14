@@ -30,7 +30,7 @@ namespace CineMate.Controllers
 
         // everyone
         [AllowAnonymous]
-        public async Task<IActionResult> Index(int? cityId, int? cinemaId, string? format, string? audio)
+        public async Task<IActionResult> Index(int? cityId, int? cinemaId)
         {
             IQueryable<Screening> q = _context.Screenings
                 .AsNoTracking()
@@ -44,19 +44,11 @@ namespace CineMate.Controllers
             if (cinemaId.HasValue)
                 q = q.Where(s => s.CinemaId == cinemaId.Value);
 
-            if (!string.IsNullOrWhiteSpace(format))
-                q = q.Where(s => s.Format != null && s.Format.ToLower() == format.ToLower());
-
-            if (!string.IsNullOrWhiteSpace(audio))
-                q = q.Where(s => s.Audio != null && s.Audio.ToLower() == audio.ToLower());
-
             var list = await q
                 .Where(s => s.StartTime >= DateTime.Today)
                 .OrderBy(s => s.StartTime)
                 .ToListAsync();
 
-            ViewBag.Format = format ?? "";
-            ViewBag.Audio = audio ?? "";
             return View(list);
         }
 
@@ -96,7 +88,7 @@ namespace CineMate.Controllers
             _context.Screenings.Add(screening);
             await _context.SaveChangesAsync();
 
-            // seed seats
+            // seed seats (7x10)
             var seats = new List<Seat>();
             for (int r = 1; r <= 7; r++)
                 for (int n = 1; n <= 10; n++)
@@ -159,17 +151,35 @@ namespace CineMate.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var res = await _context.Reservations
-                .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
-                .FirstOrDefaultAsync(r => r.Id == id);
+            // презареждаме прожекцията + седалките
+            var screening = await _context.Screenings
+                .Include(s => s.Seats)
+                .FirstOrDefaultAsync(s => s.Id == id);
 
-            if (res != null)
+            if (screening != null)
             {
-                foreach (var rs in res.ReservationSeats)
-                    if (rs.Seat != null) rs.Seat.IsAvailable = true;
+                // намираме всички резервации към тази прожекция
+                var reservations = await _context.Reservations
+                    .Include(r => r.ReservationSeats)
+                        .ThenInclude(rs => rs.Seat)
+                    .Where(r => r.ScreeningId == id)
+                    .ToListAsync();
 
-                _context.ReservationSeats.RemoveRange(res.ReservationSeats);
-                _context.Reservations.Remove(res);
+                // освобождаваме седалките
+                foreach (var r in reservations)
+                {
+                    foreach (var rs in r.ReservationSeats)
+                        if (rs.Seat != null) rs.Seat.IsAvailable = true;
+                }
+
+                _context.ReservationSeats.RemoveRange(
+                    reservations.SelectMany(r => r.ReservationSeats));
+                _context.Reservations.RemoveRange(reservations);
+
+                // махаме самата прожекция + нейните седалки
+                _context.Seats.RemoveRange(screening.Seats);
+                _context.Screenings.Remove(screening);
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index));
@@ -188,7 +198,11 @@ namespace CineMate.Controllers
         [Authorize(Policy = "ClientOnly")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SelectSeats(int id, int[]? SelectedSeatIds, string? SelectedCategory, string mode = "reserve")
+        public async Task<IActionResult> SelectSeats(
+            int id,
+            int[]? SelectedSeatIds,
+            string? SelectedCategory,
+            string mode) // "reserve" (Pay now) or "cart" (Add to cart)
         {
             var chosenSeatIds = SelectedSeatIds ?? Array.Empty<int>();
 
@@ -207,7 +221,50 @@ namespace CineMate.Controllers
                 return View(vmInvalid);
             }
 
-            // наличност
+            // цена по категория
+            decimal unitPrice = SelectedCategory switch
+            {
+                "Adult" => 16m,
+                "Teen" => 11m,
+                "Kids" => 7m,
+                _ => 16m
+            };
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            // ---- Add to cart ----
+            if (string.Equals(mode, "cart", StringComparison.OrdinalIgnoreCase))
+            {
+                // проверяваме, че седалките съществуват (не ги заключваме)
+                var exists = await _context.Seats
+                    .Where(s => s.ScreeningId == id && chosenSeatIds.Contains(s.Id))
+                    .Select(s => s.Id)
+                    .ToListAsync();
+
+                if (exists.Count != chosenSeatIds.Length)
+                {
+                    TempData["Err"] = "Some seats are invalid. Please try again.";
+                    return RedirectToAction(nameof(SelectSeats), new { id });
+                }
+
+                var item = new CartItem
+                {
+                    UserId = userId,
+                    ScreeningId = id,
+                    SeatIdsCsv = string.Join(',', chosenSeatIds),
+                    Category = SelectedCategory!,
+                    TotalPrice = unitPrice * chosenSeatIds.Length,
+                    AddedAt = DateTime.UtcNow
+                };
+                _context.CartItems.Add(item);
+                await _context.SaveChangesAsync();
+
+                // ➜ към количката
+                return RedirectToAction("Index", "Cart");
+            }
+
+            // ---- Pay now (reserve) ----
             var seatsToTake = await _context.Seats
                 .Where(s => s.ScreeningId == id && chosenSeatIds.Contains(s.Id))
                 .ToListAsync();
@@ -222,37 +279,6 @@ namespace CineMate.Controllers
                 return View(vmRetry);
             }
 
-            decimal unitPrice = SelectedCategory switch
-            {
-                "Adult" => 16m,
-                "Teen" => 11m,
-                "Kids" => 7m,
-                _ => 16m
-            };
-
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Challenge();
-
-            // --- Add to cart ---
-            if (string.Equals(mode, "cart", StringComparison.OrdinalIgnoreCase))
-            {
-                var item = new CartItem
-                {
-                    UserId = userId,
-                    ScreeningId = id,
-                    SeatIdsCsv = string.Join(",", chosenSeatIds),
-                    Category = SelectedCategory!,
-                    TotalPrice = unitPrice * chosenSeatIds.Length,
-                    AddedAt = DateTime.UtcNow
-                };
-                _context.CartItems.Add(item);
-                await _context.SaveChangesAsync();
-
-                TempData["Ok"] = "Added to cart.";
-                return RedirectToAction("Index", "Cart");
-            }
-
-            // --- Reserve now -> към плащане ---
             var reservation = new Reservation
             {
                 ScreeningId = id,
@@ -270,11 +296,10 @@ namespace CineMate.Controllers
                 SeatId = s.Id,
                 CategoryName = SelectedCategory!
             }));
-
             seatsToTake.ForEach(s => s.IsAvailable = false);
             await _context.SaveChangesAsync();
 
-            // директно към Checkout
+            // ➜ директно към плащане
             return RedirectToAction("Checkout", "Payments", new { reservationId = reservation.Id });
         }
 
@@ -302,13 +327,14 @@ namespace CineMate.Controllers
                 Seats = seats,
                 Categories = new List<SelectListItem>
                 {
-                    new SelectListItem("Adult (16 лв.)", "Adult"),
-                    new SelectListItem("Teen (11 лв.)",  "Teen"),
-                    new SelectListItem("Kids (7 лв.)",   "Kids"),
+                    new SelectListItem("Adult (16 BGN)", "Adult"),
+                    new SelectListItem("Teen (11 BGN)",  "Teen"),
+                    new SelectListItem("Kids (7 BGN)",   "Kids"),
                 }
             };
         }
 
+        // Създава седалки за прожекция, ако няма нито една
         private async Task EnsureSeatsForScreeningAsync(Screening screening, int defaultRows, int defaultCols)
         {
             if (screening.Seats != null && screening.Seats.Any())
@@ -355,9 +381,9 @@ namespace CineMate.Controllers
                 SelectedSeatIds = selectedSeatIds ?? Array.Empty<int>(),
                 Categories = new List<SelectListItem>
                 {
-                    new SelectListItem("Adult (16 лв.)", "Adult"),
-                    new SelectListItem("Teen  (11 лв.)", "Teen"),
-                    new SelectListItem("Kids  ( 7 лв.)", "Kids"),
+                    new SelectListItem("Adult (16 BGN)", "Adult"),
+                    new SelectListItem("Teen (11 BGN)",  "Teen"),
+                    new SelectListItem("Kids (7 BGN)",   "Kids"),
                 }
             };
             return View(vm);
@@ -387,9 +413,9 @@ namespace CineMate.Controllers
                     .ToList();
                 vm.Categories = new List<SelectListItem>
                 {
-                    new SelectListItem("Adult (16 лв.)", "Adult"),
-                    new SelectListItem("Teen  (11 лв.)", "Teen"),
-                    new SelectListItem("Kids  ( 7 лв.)", "Kids"),
+                    new SelectListItem("Adult (16 BGN)", "Adult"),
+                    new SelectListItem("Teen (11 BGN)",  "Teen"),
+                    new SelectListItem("Kids (7 BGN)",   "Kids"),
                 };
                 return View(vm);
             }
@@ -421,9 +447,9 @@ namespace CineMate.Controllers
                     .ToList();
                 vm.Categories = new List<SelectListItem>
                 {
-                    new SelectListItem("Adult (16 лв.)", "Adult"),
-                    new SelectListItem("Teen  (11 лв.)", "Teen"),
-                    new SelectListItem("Kids  ( 7 лв.)", "Kids"),
+                    new SelectListItem("Adult (16 BGN)", "Adult"),
+                    new SelectListItem("Teen (11 BGN)",  "Teen"),
+                    new SelectListItem("Kids (7 BGN)",   "Kids"),
                 };
                 return View(vm);
             }

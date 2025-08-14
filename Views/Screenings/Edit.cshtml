@@ -5,7 +5,27 @@
     ViewData["Title"] = "Edit Screening";
 }
 
+@section Styles {
+    <style>
+        .page-hero {
+            border-radius: 18px;
+            padding: 28px 24px;
+            margin: 6px 0 18px;
+            background: radial-gradient(120% 140% at 10% 10%, #1f2742 0%, #1b1f36 45%, #2a1e3f 100%);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(20,22,45,.22);
+        }
+
+            .page-hero h1 {
+                margin: 0;
+                font-weight: 800;
+                letter-spacing: .3px;
+            }
+    </style>
+}
+<div class="page-hero">
 <h1>Edit Screening</h1>
+</div>
 
 <form asp-action="Edit" method="post">
     @Html.AntiForgeryToken()
@@ -33,14 +53,6 @@
         <label asp-for="StartTime"></label>
         <input asp-for="StartTime" type="datetime-local" class="form-control" />
         <span asp-validation-for="StartTime" class="text-danger"></span>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Format</label>
-        <input asp-for="Format" class="form-control" placeholder="2d / 3d / imax" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Audio</label>
-        <input asp-for="Audio" class="form-control" placeholder="sub / dub" />
     </div>
 
     <button type="submit" class="btn btn-primary">Save</button>

@@ -186,32 +186,7 @@
     </div>
 </div>
 
-@{
-    var activeFormat = (string?)ViewBag.Format ?? "";
-    var activeAudio = (string?)ViewBag.Audio ?? "";
-    string A(string v, string a) => v == a ? "active" : "";
-}
 
-<div class="container px-0 mb-2">
-    <div class="d-flex gap-2 flex-wrap">
-        <!-- Format -->
-        <div>
-            <span class="text-muted me-2">Format:</span>
-            <a class="chip @A(activeFormat,"")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="" asp-route-audio="@activeAudio">All</a>
-            <a class="chip @A(activeFormat,"2d")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="2d" asp-route-audio="@activeAudio">2D</a>
-            <a class="chip @A(activeFormat,"3d")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="3d" asp-route-audio="@activeAudio">3D</a>
-            <a class="chip @A(activeFormat,"imax")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="imax" asp-route-audio="@activeAudio">IMAX</a>
-        </div>
-
-        <!-- Audio -->
-        <div class="ms-3">
-            <span class="text-muted me-2">Audio:</span>
-            <a class="chip @A(activeAudio,"")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="@activeFormat" asp-route-audio="">All</a>
-            <a class="chip @A(activeAudio,"sub")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="@activeFormat" asp-route-audio="sub">Sub</a>
-            <a class="chip @A(activeAudio,"dub")" asp-action="Index" asp-route-cityId="@Context.Request.Query["cityId"]" asp-route-cinemaId="@Context.Request.Query["cinemaId"]" asp-route-format="@activeFormat" asp-route-audio="dub">Dub</a>
-        </div>
-    </div>
-</div>
 
 @if (!ordered.Any())
 {

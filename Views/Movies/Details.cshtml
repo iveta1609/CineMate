@@ -1,23 +1,52 @@
 ﻿@model CineMate.Data.Entities.Movie
 @{
-	ViewData["Title"] = "Movie Details";
+    ViewData["Title"] = "Movie Details";
 }
-<h1>Movie Details</h1>
+
+@section Styles {
+    <style>
+        .page-hero {
+            background: radial-gradient(1200px 600px at 85% -50%, rgba(168,85,247,.25), transparent 60%), radial-gradient(900px 500px at 10% -40%, rgba(56,189,248,.25), transparent 55%), #0f172a;
+            color: #fff;
+            border-radius: 20px;
+            padding: 28px 28px;
+            margin: 16px 0 20px;
+            box-shadow: 0 10px 30px rgba(2,6,23,.28);
+        }
+
+            .page-hero h1 {
+                margin: 0;
+                font-weight: 800;
+                letter-spacing: .5px;
+            }
+    </style>
+}
+
+<div class="page-hero">
+    <h1>Movie Details</h1>
+</div>
+
 <dl class="row">
-	<dt class="col-sm-2">Title</dt>
-	<dd class="col-sm-10">@Model.Title</dd>
-	<dt class="col-sm-2">Director</dt>
-	<dd class="col-sm-10">@Model.Director</dd>
-	<dt class="col-sm-2">Year</dt>
-	<dd class="col-sm-10">@Model.ReleaseYear</dd>
-	<dt class="col-sm-2">Genre</dt>
-	<dd class="col-sm-10">@Model.Genre</dd>
-	<dt class="col-sm-2">Synopsis</dt>
-	<dd class="col-sm-10">@Model.Synopsis</dd>
-	<dt class="col-sm-2">Duration</dt>
-	<dd class="col-sm-10">@Model.DurationMinutes min</dd>
+    <dt class="col-sm-2">Title</dt>
+    <dd class="col-sm-10">@Model.Title</dd>
+
+    <dt class="col-sm-2">Director</dt>
+    <dd class="col-sm-10">@Model.Director</dd>
+
+    <dt class="col-sm-2">Year</dt>
+    <dd class="col-sm-10">@Model.ReleaseYear</dd>
+
+    <dt class="col-sm-2">Genre</dt>
+    <dd class="col-sm-10">@Model.Genre</dd>
+
+    <dt class="col-sm-2">Synopsis</dt>
+    <dd class="col-sm-10">@Model.Synopsis</dd>
+
+    <dt class="col-sm-2">Duration</dt>
+    <dd class="col-sm-10">@Model.DurationMinutes min</dd>
 </dl>
+
 <p>
-	<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
-	<a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </p>

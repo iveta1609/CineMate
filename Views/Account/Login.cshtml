@@ -3,39 +3,58 @@
     ViewData["Title"] = "Log in";
 }
 
-<h2>@ViewData["Title"]</h2>
+@section Styles {
+    <style>
+        .page-hero {
+            background: radial-gradient(1200px 400px at 100% 0, rgba(121, 80, 242, .25), rgba(13,110,253,.18), transparent), linear-gradient(135deg, #1f2937, #111827 60%, #0b1020);
+            border-radius: 16px;
+            color: #fff;
+        }
 
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Login" method="post">
-            <h4>Use a local account to log in.</h4>
-            <hr />
-            <div asp-validation-summary="All" class="text-danger"></div>
+        .auth-card {
+            width: 100%;
+            max-width: 520px;
+        }
+    </style>
+}
 
-            <div class="form-group">
-                <label asp-for="Email"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
+<div class="page-hero p-4 p-md-5 mb-4 shadow-sm">
+    <h1 class="m-0">Log in</h1>
+    <div class="opacity-75">Use a local account to log in.</div>
+</div>
 
-            <div class="form-group">
-                <label asp-for="Password"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
+<div class="d-flex justify-content-center">
+    <div class="card auth-card mx-auto shadow-sm">
+        <div class="card-body">
+            <form asp-action="Login" method="post" novalidate>
+                @Html.AntiForgeryToken()
 
-            <div class="form-group form-check">
-                <input asp-for="RememberMe" class="form-check-input" />
-                <label asp-for="RememberMe" class="form-check-label"></label>
-            </div>
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-            <input asp-for="ReturnUrl" type="hidden" />
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" type="email" autocomplete="username" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
 
-            <button type="submit" class="btn btn-primary">Log in</button>
-        </form>
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">Remember me</label>
+                </div>
+
+                <input asp-for="ReturnUrl" type="hidden" />
+                <button type="submit" class="btn btn-primary w-100">Log in</button>
+            </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+<partial name="_ValidationScriptsPartial" />
+ }
