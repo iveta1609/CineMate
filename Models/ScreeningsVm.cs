@@ -10,8 +10,8 @@
         public string City { get; set; } = "";
         public string CinemaName { get; set; } = "";
      
-        public int RuntimeMin { get; set; }        // optional
-        public decimal? Price { get; set; }        // optional
+        public int RuntimeMin { get; set; }        
+        public decimal? Price { get; set; }        
     }
 
     public class ScreeningsDayVm

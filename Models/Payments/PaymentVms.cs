@@ -14,7 +14,7 @@
         public int ReservationId { get; set; }
         public string Cardholder { get; set; } = "";
         public string CardNumber { get; set; } = "";
-        public string Expiry { get; set; } = ""; // MM/YY
+        public string Expiry { get; set; } = ""; 
         public string Cvc { get; set; } = "";
     }
 }

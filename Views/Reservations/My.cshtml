@@ -4,10 +4,8 @@
 
 @{
     ViewData["Title"] = "My reservations";
-    // period tabs
-    string scope = (string?)ViewBag.Scope ?? "upcoming";   // upcoming | past | all
-    // status tabs
-    string paid = (string?)ViewBag.Paid ?? "all";        // yes | no | all (тук ползваме yes/no)
+    string scope = (string?)ViewBag.Scope ?? "upcoming";   
+    string paid = (string?)ViewBag.Paid ?? "all";        
     string Active(string v, string a) => v == a ? "active" : "";
     string D(DateTime dt) => dt.ToString("dd.MM.yyyy • HH:mm", CultureInfo.CurrentUICulture);
 }
@@ -25,7 +23,6 @@
                 gap: 6px
             }
 
-        /* статус табове – оцветяваме само АКТИВНИТЕ бутони */
         .status-tabs .nav-link {
             border: 1px solid #e5e7eb
         }
@@ -42,7 +39,6 @@
                 color: #111827
             }
 
-        /* карти */
         .card-res {
             border: 1px solid #eef0f3;
             border-radius: 16px;
@@ -69,7 +65,6 @@
             margin: 0
         }
 
-        /* бейджове върху картите */
         .badge-paid {
             background: #16a34a
         }
@@ -90,14 +85,12 @@
     </style>
 }
 
-<!-- HERO: My reservations -->
 <div class="hero-band">
     <h1 class="hero-title mb-0">My reservations</h1>
     <div class="hero-sub">Filter by period and status</div>
 </div>
 
 <div class="filters">
-    <!-- ПЕРИОД – табове -->
     <ul class="nav nav-pills">
         <li class="nav-item">
             <a class="nav-link @Active(scope,"upcoming")"
@@ -113,7 +106,6 @@
         </li>
     </ul>
 
-    <!-- СТАТУС – табове (само Paid / In progress; премахнат е „All“, за да няма 2×All) -->
     <ul class="nav nav-pills status-tabs">
         <li class="nav-item">
             <a class="nav-link @(paid=="yes" ? "active paid" : "")"
@@ -174,7 +166,6 @@ else
                                     <a class="btn btn-sm btn-outline-secondary"
                                        asp-action="Details" asp-route-id="@r.Id">Details</a>
 
-                                    @* Показваме Pay/Cancel само за неплатени и бъдещи *@
                                     @if (!r.IsPaid && time >= DateTime.Now)
                                     {
                                         <a class="btn btn-sm btn-primary"

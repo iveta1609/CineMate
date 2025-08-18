@@ -17,9 +17,7 @@ namespace CineMate.Controllers
         private readonly CineMateDbContext _context;
         public CinemasController(CineMateDbContext context) => _context = context;
 
-        // ===== JSON за layout селекторите =====
 
-        // /Cinemas/ByCity?cityId=1
         [AllowAnonymous]
         [HttpGet("/Cinemas/ByCity")]
         public async Task<IActionResult> ByCity(int cityId)
@@ -34,7 +32,6 @@ namespace CineMate.Controllers
             return Json(list);
         }
 
-        // /Cinemas/ByCityName?name=Sofia (fallback)
         [AllowAnonymous]
         [HttpGet("/Cinemas/ByCityName")]
         public async Task<IActionResult> ByCityName(string name)
@@ -54,7 +51,6 @@ namespace CineMate.Controllers
             return Json(list);
         }
 
-        // ===== UI (само Index/Details/Edit) =====
 
         public async Task<IActionResult> Index()
         {

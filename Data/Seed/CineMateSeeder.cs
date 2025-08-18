@@ -8,15 +8,11 @@ namespace CineMate.Data.Seed
 {
     public static class CineMateSeeder
     {
-        /// <summary>
-        /// Идемпотентен seed за градове и кина. НИКОГА не трие нищо и
-        /// не закача потребителски данни (CartItems/Reservations и т.н.).
-        /// </summary>
+ 
         public static async Task SeedCitiesAndCinemasAsync(CineMateDbContext db)
         {
             static string Clean(string s) => (s ?? string.Empty).Trim();
 
-            // Имената са синхронизирани с останалия код/макети
             var plan = new Dictionary<string, string[]>
             {
                 ["Sofia"] = new[]
@@ -43,7 +39,6 @@ namespace CineMate.Data.Seed
             {
                 var cityName = Clean(kvp.Key);
 
-                // Case-insensitive търсене на град
                 var city = await db.Cities
                     .FirstOrDefaultAsync(c => c.Name.ToLower() == cityName.ToLower());
 
@@ -54,7 +49,6 @@ namespace CineMate.Data.Seed
                     await db.SaveChangesAsync();
                 }
 
-                // Добавяме само липсващите кина (case-insensitive)
                 foreach (var rawCinemaName in kvp.Value)
                 {
                     var cinemaName = Clean(rawCinemaName);

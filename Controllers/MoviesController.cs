@@ -50,12 +50,10 @@ namespace CineMate.Controllers
 
             var t = title.Trim().ToLower();
 
-            // 1) точен мач (без чувствителност към регистър)
             var movie = await _context.Movies
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Title.ToLower() == t);
 
-            // 2) ако няма – търсене по съдържание
             if (movie == null)
             {
                 movie = await _context.Movies
@@ -64,9 +62,8 @@ namespace CineMate.Controllers
             }
 
             if (movie == null)
-                return NotFound(); // по желание може да върнеш View с "не е намерен"
+                return NotFound(); 
 
-            // пренасочваме към нормалната страница за детайли
             return RedirectToAction(nameof(Details), new { id = movie.Id });
         }
 
@@ -85,7 +82,6 @@ namespace CineMate.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ===================== EDIT =====================
 
         [Authorize(Roles = "Administrator,Operator")]
         public async Task<IActionResult> Edit(int id)
@@ -108,7 +104,6 @@ namespace CineMate.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ===================== DELETE =====================
 
         [Authorize(Roles = "Administrator,Operator")]
         public async Task<IActionResult> Delete(int id)
@@ -132,18 +127,15 @@ namespace CineMate.Controllers
 
             if (movie == null) return RedirectToAction(nameof(Index));
 
-            // Ако има прожекции към филма – чистим зависимостите
             if (movie.Screenings != null && movie.Screenings.Any())
             {
                 var screeningIds = movie.Screenings.Select(s => s.Id).ToList();
 
-                // Резервации + техните седалки
                 var reservations = await _context.Reservations
                     .Include(r => r.ReservationSeats).ThenInclude(rs => rs.Seat)
                     .Where(r => screeningIds.Contains(r.ScreeningId))
                     .ToListAsync();
 
-                // Освобождаваме седалките
                 foreach (var r in reservations)
                     foreach (var rs in r.ReservationSeats)
                         if (rs.Seat != null) rs.Seat.IsAvailable = true;
@@ -151,13 +143,11 @@ namespace CineMate.Controllers
                 _context.ReservationSeats.RemoveRange(reservations.SelectMany(r => r.ReservationSeats));
                 _context.Reservations.RemoveRange(reservations);
 
-                // Седалки към прожекциите
                 var seats = await _context.Seats
                     .Where(s => screeningIds.Contains(s.ScreeningId))
                     .ToListAsync();
                 _context.Seats.RemoveRange(seats);
 
-                // Самите прожекции
                 _context.Screenings.RemoveRange(movie.Screenings);
             }
 

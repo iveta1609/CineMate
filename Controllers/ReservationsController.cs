@@ -25,7 +25,6 @@ namespace CineMate.Controllers
             _userManager = userManager;
         }
 
-        // GET: Reservations
         public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
@@ -35,7 +34,6 @@ namespace CineMate.Controllers
                 .Include(r => r.Screening).ThenInclude(s => s.Movie)
                 .Include(r => r.Screening).ThenInclude(s => s.Cinema);
 
-            // Клиентът вижда само своите резервации; админ/оператор – всички
             if (User.IsInRole("Client"))
                 q = q.Where(r => r.UserId == userId);
 
@@ -54,11 +52,9 @@ namespace CineMate.Controllers
 
             if (reservation == null) return NotFound();
 
-            // Клиентите могат да гледат само своите резервации
             if (User.IsInRole("Client") && reservation.UserId != _userManager.GetUserId(User))
                 return Forbid();
 
-            // Списък със седалки за View-то
             var seats = reservation.ReservationSeats?
                 .Select(rs => rs.Seat)
                 .OrderBy(s => s.Row).ThenBy(s => s.Number)
@@ -68,7 +64,6 @@ namespace CineMate.Controllers
             return View(reservation);
         }
 
-        // GET: Reservations/Create?screeningId=5
         [Authorize(Roles = "Client")]
         public IActionResult Create(int screeningId)
         {
@@ -79,7 +74,6 @@ namespace CineMate.Controllers
             return View(reservation);
         }
 
-        // POST: Reservations/Create
         [HttpPost]
         [Authorize(Roles = "Client")]
         [ValidateAntiForgeryToken]
@@ -93,7 +87,6 @@ namespace CineMate.Controllers
             reservation.UserId = userId;
             reservation.ReservationTime = DateTime.Now;
 
-            // Ако не е подадена сума – пресмятаме по избраните места (ако ги има)
             if (reservation.TotalPrice <= 0 && reservation.ReservationSeats != null && reservation.ReservationSeats.Any())
             {
                 reservation.TotalPrice = reservation.ReservationSeats.Sum(rs => rs.Category.GetPrice());
@@ -120,7 +113,6 @@ namespace CineMate.Controllers
         {
             var userId = _userManager.GetUserId(User);
 
-            // >>> ВАЖНО: q е IQueryable<Reservation>, не var
             IQueryable<Reservation> q = _context.Reservations
                 .AsNoTracking()
                 .Where(r => r.UserId == userId)
@@ -192,7 +184,6 @@ namespace CineMate.Controllers
                 return RedirectToAction(nameof(My));
             }
 
-            // освобождаваме местата
             foreach (var rs in res.ReservationSeats)
                 if (rs.Seat != null) rs.Seat.IsAvailable = true;
 

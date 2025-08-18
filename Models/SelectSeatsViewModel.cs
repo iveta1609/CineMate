@@ -8,7 +8,7 @@ namespace CineMate.Models
     public class SelectSeatsViewModel
     {
         public int ScreeningId { get; set; }
-        public Screening? Screening { get; set; }   // навигационният обект за заглавието, киното и часа
+        public Screening? Screening { get; set; }   
 
         public List<Seat> Seats { get; set; } = new();
 

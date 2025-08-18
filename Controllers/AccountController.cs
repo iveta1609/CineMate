@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using CineMate.Models; // namespace-а, където ще сложиш ViewModel-ите
+using CineMate.Models; 
 
 namespace CineMate.Controllers
 {
@@ -47,21 +47,17 @@ namespace CineMate.Controllers
                 return View(vm);
             }
 
-            // увери се, че ролята "Client" съществува:
             if (!await _roleMgr.RoleExistsAsync("Client"))
                 await _roleMgr.CreateAsync(new IdentityRole("Client"));
 
-            // добави user към Client
             var addToRoleRes = await _userMgr.AddToRoleAsync(user, "Client");
             if (!addToRoleRes.Succeeded)
             {
-                // (рядко ще стане, но за всеки случай)
                 foreach (var err in addToRoleRes.Errors)
                     ModelState.AddModelError("", err.Description);
                 return View(vm);
             }
 
-            // логни го
             await _signInMgr.SignInAsync(user, isPersistent: false);
             return LocalRedirect(returnUrl ?? "/");
         }

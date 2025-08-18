@@ -18,7 +18,6 @@ namespace CineMate.Controllers
 
         public CartController(CineMateDbContext ctx) => _context = ctx;
 
-        // GET: /Cart
         public async Task<IActionResult> Index()
         {
             var uid = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -34,7 +33,6 @@ namespace CineMate.Controllers
             return View(items);
         }
 
-        // POST: /Cart/Remove
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Remove(int id)
@@ -71,7 +69,6 @@ namespace CineMate.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // seat ids от кошницата
             var seatIds = (item.SeatIdsCsv ?? string.Empty)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => int.TryParse(s, out var n) ? n : (int?)null)
@@ -79,7 +76,6 @@ namespace CineMate.Controllers
                 .Select(n => n!.Value)
                 .ToArray();
 
-            // проверка за наличност
             var seatsToTake = await _context.Seats
                 .Where(s => s.ScreeningId == item.ScreeningId && seatIds.Contains(s.Id))
                 .ToListAsync();
@@ -90,7 +86,6 @@ namespace CineMate.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // създай Reservation
             var reservation = new Reservation
             {
                 ScreeningId = item.ScreeningId,
@@ -103,7 +98,6 @@ namespace CineMate.Controllers
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            // свържи местата
             _context.ReservationSeats.AddRange(seatsToTake.Select(s => new ReservationSeat
             {
                 ReservationId = reservation.Id,
@@ -111,15 +105,12 @@ namespace CineMate.Controllers
                 CategoryName = item.Category
             }));
 
-            // маркирай местата като заети
             seatsToTake.ForEach(s => s.IsAvailable = false);
 
-            // махни артикула от кошницата
             _context.CartItems.Remove(item);
 
             await _context.SaveChangesAsync();
 
-            // към плащане
             return RedirectToAction("Checkout", "Payments", new { reservationId = reservation.Id });
         }
     }

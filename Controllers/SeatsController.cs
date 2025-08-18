@@ -15,7 +15,6 @@ namespace CineMate.Controllers
         public SeatsController(CineMateDbContext context)
             => _context = context;
 
-        // GET: Seats
         public async Task<IActionResult> Index()
         {
             var seats = await _context.Seats
@@ -25,7 +24,6 @@ namespace CineMate.Controllers
             return View(seats);
         }
 
-        // GET: Seats/Details/5
         public async Task<IActionResult> Details(int id)
         {
             var seat = await _context.Seats
@@ -39,14 +37,12 @@ namespace CineMate.Controllers
             return View(seat);
         }
 
-        // GET: Seats/Create
         public IActionResult Create()
         {
             PopulateScreeningDropDown();
             return View();
         }
 
-        // POST: Seats/Create
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Seat seat)
         {
@@ -58,12 +54,10 @@ namespace CineMate.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // при грешка пак подготвяме dropdown
             PopulateScreeningDropDown(seat.ScreeningId);
             return View(seat);
         }
 
-        // GET: Seats/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
             var seat = await _context.Seats.FindAsync(id);
@@ -73,7 +67,6 @@ namespace CineMate.Controllers
             return View(seat);
         }
 
-        // POST: Seats/Edit/5
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Seat seat)
         {
@@ -95,12 +88,10 @@ namespace CineMate.Controllers
                 }
             }
 
-            // при грешка пак подготвяме dropdown
             PopulateScreeningDropDown(seat.ScreeningId);
             return View(seat);
         }
 
-        // GET: Seats/Delete/5
         public async Task<IActionResult> Delete(int id)
         {
             var seat = await _context.Seats
@@ -112,7 +103,6 @@ namespace CineMate.Controllers
             return View(seat);
         }
 
-        // POST: Seats/Delete/5
         [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {

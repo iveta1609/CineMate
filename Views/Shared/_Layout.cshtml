@@ -1,6 +1,4 @@
-﻿@*
-  Views/Shared/_Layout.cshtml
-*@
+﻿
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,7 +13,6 @@
     @RenderSection("Styles", required: false)
 
     <style>
-        /* ---- Custom: location picker styles ---- */
         .navbar .form-select.form-select-sm {
             padding-top: .25rem;
             padding-bottom: .25rem;
@@ -25,7 +22,6 @@
             gap: .5rem;
         }
 
-        /* ВАЖНО за Razor: @@media */
         @@media (max-width: 576px) {
             #location-picker {
                 width: 100%;
@@ -37,7 +33,6 @@
                 }
         }
 
-        /* Стандартни помощни стилове (по желание) */
         a.navbar-brand {
             white-space: normal;
             text-align: center;
@@ -80,7 +75,6 @@
             line-height: 60px;
         }
 
-        /* cart icon tweak */
         .nav-cart {
             font-size: 1.2rem;
             line-height: 1;
@@ -100,10 +94,8 @@
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        @* place for left-side nav if ever needed *@
                     </ul>
 
-                    <!-- City / Cinema picker (дясно в навбара) -->
                     <div id="location-picker" class="d-flex align-items-center me-3">
                         <select id="citySelect" class="form-select form-select-sm" style="min-width:160px">
                             <option value="">Select city</option>
@@ -113,11 +105,9 @@
                         </select>
                     </div>
 
-                    <!-- Auth menu -->
                     <ul class="navbar-nav align-items-center">
                         @if (User.Identity?.IsAuthenticated ?? false)
                         {
-                            <!-- Cart FIRST (вляво от “My reservations”) -->
                             <li class="nav-item me-2">
                                 <a class="nav-link nav-cart" asp-controller="Cart" asp-action="Index" title="Cart">🛒</a>
                             </li>
@@ -160,7 +150,6 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    <!-- Location picker logic -->
     <script>
         (function () {
             const citySel   = document.getElementById('citySelect');
@@ -170,13 +159,11 @@
             const LS_CITY   = 'cm_cityId';
             const LS_CINEMA = 'cm_cinemaId';
 
-            // премахни евентуални стари стойности
             if (localStorage.getItem(LS_CITY) === '-1') localStorage.removeItem(LS_CITY);
 
             function setCinemaDisabled(v){ cinemaSel.disabled = v; }
             function addOption(sel, value, text){ const o=document.createElement('option'); o.value=value; o.textContent=text; sel.appendChild(o); return o; }
 
-            // --- Fallback-aware loader за кина ---
             function loadCinemas(cityId, preselect) {
                 setCinemaDisabled(true);
                 cinemaSel.innerHTML = '';
@@ -184,7 +171,6 @@
 
                 if (!cityId) { setCinemaDisabled(false); return; }
 
-                // 1) Първо по ID
                 fetch(`/Cinemas/ByCity?cityId=${encodeURIComponent(cityId)}`)
                     .then(r => r.ok ? r.json() : [])
                     .then(list => {
@@ -195,7 +181,6 @@
                             return;
                         }
 
-                        // 2) Резервно по ИМЕ (ако по ID е празно)
                         const cityName = citySel.options[citySel.selectedIndex]?.text || '';
                         if (!cityName) { addOption(cinemaSel, '', 'No cinemas'); setCinemaDisabled(false); return; }
 
@@ -215,7 +200,6 @@
                     .catch(() => { addOption(cinemaSel, '', 'Failed to load'); setCinemaDisabled(false); });
             }
 
-            // --- Зареждане на градовете ---
             fetch('/Cities/List')
                 .then(r => r.ok ? r.json() : [])
                 .then(cities => {
@@ -234,9 +218,8 @@
                         loadCinemas(effectiveCity, savedCinema);
                     }
                 })
-                .catch(() => { /* без градове => селекторът остава с "Select city" */ });
+                .catch(() => {});
 
-            // --- Промяна на град ---
             citySel.addEventListener('change', () => {
                 const cityId = citySel.value;
                 localStorage.setItem(LS_CITY, cityId || '');
@@ -244,7 +227,6 @@
                 loadCinemas(cityId, null);
             });
 
-            // --- Промяна на кино -> към програмата ---
             cinemaSel.addEventListener('change', () => {
                 const cityId   = citySel.value;
                 const cinemaId = cinemaSel.value;

@@ -9,7 +9,6 @@ using CineMate.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== Policies =====
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", p => p.RequireRole("Administrator"));
@@ -17,15 +16,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ClientOnly", p => p.RequireRole("Client"));
 });
 
-// ===== Services =====
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
-// ===== DbContext =====
 builder.Services.AddDbContext<CineMateDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ===== Identity =====
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(opts =>
 {
     opts.Password.RequireDigit = false;
@@ -48,22 +44,18 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// ===== One-time DB init (idempotent) =====
 using (var scope = app.Services.CreateScope())
 {
     var sp = scope.ServiceProvider;
     var db = sp.GetRequiredService<CineMateDbContext>();
 
-    // ВАЖНО: мигрираме (НЕ трием/създаваме наново)
     await db.Database.MigrateAsync();
 
-    // Роли
     var roleMgr = sp.GetRequiredService<RoleManager<IdentityRole>>();
     foreach (var role in new[] { "Administrator", "Operator", "Client" })
         if (!await roleMgr.RoleExistsAsync(role))
             await roleMgr.CreateAsync(new IdentityRole(role));
 
-    // Статичен seed – само добавя липсващи данни, НЕ пипа CartItems/Reservations
     await SeedStaticAsync(db);
 }
 
@@ -87,10 +79,8 @@ app.MapControllerRoute(
 app.Run();
 
 
-// ===================== helpers =====================
 static async Task SeedStaticAsync(CineMateDbContext db)
 {
-    // 1) Cities
     if (!await db.Cities.AnyAsync())
     {
         db.Cities.AddRange(
@@ -101,7 +91,6 @@ static async Task SeedStaticAsync(CineMateDbContext db)
         await db.SaveChangesAsync();
     }
 
-    // 2) Cinemas (по град – добавяме само липсващите)
     var plan = new Dictionary<string, string[]>
     {
         ["Sofia"] = new[] { "CineMate Mall of Sofia", "CineMate Paradise Center", "CineMate Serdika Center", "CineMate The Mall", "CineMate Bulgaria Mall" },
@@ -120,7 +109,6 @@ static async Task SeedStaticAsync(CineMateDbContext db)
     }
     await db.SaveChangesAsync();
 
-    // 3) Movies (само ако няма)
     if (!await db.Movies.AnyAsync())
     {
         db.Movies.AddRange(
@@ -132,7 +120,6 @@ static async Task SeedStaticAsync(CineMateDbContext db)
         await db.SaveChangesAsync();
     }
 
-    // 4) Week program (13–19 Oct 2025) – добавяме прожекции/седалки само ако липсват
     var startDate = new DateTime(2025, 10, 13);
     var endDate = new DateTime(2025, 10, 19);
     var slots = new[] { new TimeSpan(12, 0, 0), new TimeSpan(15, 0, 0), new TimeSpan(18, 30, 0), new TimeSpan(21, 30, 0) };
@@ -169,7 +156,6 @@ static async Task SeedStaticAsync(CineMateDbContext db)
         }
     }
 
-    // 5) PosterUrl запълване (ако имаш колоната)
     var posterProp = typeof(Movie).GetProperty("PosterUrl");
     if (posterProp?.PropertyType == typeof(string))
     {
@@ -197,5 +183,4 @@ static async Task SeedStaticAsync(CineMateDbContext db)
         if (changed) await db.SaveChangesAsync();
     }
 
-    // НИЩО тук не трие CartItems / Reservations / AspNetUsers.
 }

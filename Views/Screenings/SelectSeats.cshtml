@@ -3,7 +3,6 @@
     ViewData["Title"] = "Select Seats";
 }
 
-<!-- HERO: Select seats -->
 <div class="hero-band d-flex align-items-start justify-content-between">
     <div class="me-3">
         <h1 class="hero-title">Select seats for @Model.Screening?.Movie?.Title</h1>
@@ -12,7 +11,6 @@
         </div>
     </div>
 
-    @* Admin / Operator actions *@
     @if (User.IsInRole("Administrator") || User.IsInRole("Operator"))
     {
         <div class="btn-toolbar gap-2">
@@ -41,7 +39,6 @@
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <input type="hidden" asp-for="ScreeningId" />
 
-    <!-- Seat map -->
     <div class="card mb-3 p-4 text-center">
         <div class="screen mb-4">SCREEN</div>
 
@@ -108,7 +105,6 @@
         <span asp-validation-for="SelectedSeatIds" class="text-danger d-block mt-2"></span>
     </div>
 
-    <!-- Category -->
     <div class="card mb-3 p-3">
         <h4 class="mb-2">Ticket category</h4>
         <div class="d-flex gap-3 flex-wrap">

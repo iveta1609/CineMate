@@ -16,14 +16,13 @@ namespace CineMate.Services
         private readonly SmtpOptions _opt;
         public SmtpEmailService(IOptions<SmtpOptions> opt) => _opt = opt.Value;
 
-        // Прост HTML имейл
         public async Task SendAsync(string to, string subject, string htmlBody)
         {
             var builder = new BodyBuilder { HtmlBody = htmlBody };
             await SendWithBodyBuilderAsync(to, subject, builder);
         }
 
-        // Имейл с QR е-билет (inline image чрез MimeKit LinkedResources)
+        
         public async Task SendReservationReceiptAsync(string to, Reservation r)
         {
             var movie = r.Screening?.Movie?.Title ?? "Movie";
@@ -32,7 +31,6 @@ namespace CineMate.Services
             var total = r.TotalPrice.ToString("0.00");
             var refNo = string.IsNullOrWhiteSpace(r.PaymentRef) ? $"RES-{r.Id}" : r.PaymentRef;
 
-            // Списък с места, ако ги имаме
             var seats = (r.ReservationSeats != null && r.ReservationSeats.Any())
                 ? string.Join(", ", r.ReservationSeats
                     .Where(x => x.Seat != null)
@@ -40,10 +38,8 @@ namespace CineMate.Services
                     .Select(x => $"R{x.Seat.Row}-N{x.Seat.Number}"))
                 : "(not specified)";
 
-            // QR payload (mock)
             var payload = $"CINEMATE|RES:{r.Id}|REF:{refNo}|START:{r.Screening?.StartTime:O}|MOVIE:{movie}";
 
-            // Генерираме PNG на QR в паметта
             byte[] qrPng;
             using (var gen = new QRCodeGenerator())
             using (var data = gen.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q))
@@ -52,7 +48,6 @@ namespace CineMate.Services
                 qrPng = png.GetGraphic(10);
             }
 
-            // HTML (вграден QR чрез CID)
             var html = $@"
 <style>
   .card{{border:1px solid #eee;border-radius:12px;max-width:560px;padding:16px;font-family:system-ui,Segoe UI,Roboto,Arial}}
@@ -79,7 +74,6 @@ namespace CineMate.Services
 
             var builder = new BodyBuilder { HtmlBody = html };
 
-            // Вграден ресурс (CID) за QR
             var qr = builder.LinkedResources.Add("qr.png", qrPng);
             qr.ContentId = "qrImage";
             qr.ContentType.MediaType = "image";
@@ -89,7 +83,6 @@ namespace CineMate.Services
             await SendWithBodyBuilderAsync(to, $"Your CineMate tickets – {movie}", builder);
         }
 
-        // Изпращане чрез MailKit + MimeKit
         private async Task SendWithBodyBuilderAsync(string to, string subject, BodyBuilder builder)
         {
             var msg = new MimeMessage();
@@ -98,7 +91,6 @@ namespace CineMate.Services
             msg.Subject = subject;
             msg.Body = builder.ToMessageBody();
 
-            // Явно посочваме MailKit клиента, за да няма двусмислие със System.Net.Mail
             using var client = new MailKit.Net.Smtp.SmtpClient();
             var socket = _opt.UseSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
 

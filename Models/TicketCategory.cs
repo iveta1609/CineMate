@@ -2,9 +2,9 @@
 {
     public enum TicketCategory
     {
-        Adult, // 16
-        Teen,  // 11
-        Kids   // 7
+        Adult, 
+        Teen,  
+        Kids   
     }
 
     public static class TicketCategoryExtensions
@@ -21,7 +21,7 @@
         public static string DisplayName(this TicketCategory cat) =>
             cat switch
             {
-                TicketCategory.Adult => "Adult (над 18)",
+                TicketCategory.Adult => "Adult (over 18)",
                 TicketCategory.Teen => "Teen (12–17)",
                 TicketCategory.Kids => "Kids (5–10)",
                 _ => cat.ToString()

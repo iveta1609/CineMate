@@ -14,7 +14,6 @@ namespace CineMate.Controllers
         private readonly CineMateDbContext _context;
         public CitiesController(CineMateDbContext context) => _context = context;
 
-        // /Cities/List – ползва се от _Layout селектора
         [AllowAnonymous]
         [HttpGet("/Cities/List")]
         public async Task<IActionResult> List()

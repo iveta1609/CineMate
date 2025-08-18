@@ -28,7 +28,6 @@ namespace CineMate.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Seed роли
             var adminRoleId = "a1111111-aaaa-4aaa-aaaa-aaaaaaaaaaa1";
             var operatorRoleId = "b2222222-bbbb-4bbb-bbbb-bbbbbbbbbbb2";
             var clientRoleId = "c3333333-cccc-4ccc-cccc-ccccccccccc3";
@@ -39,7 +38,6 @@ namespace CineMate.Data
                 new IdentityRole { Id = clientRoleId, Name = "Client", NormalizedName = "CLIENT" }
             );
 
-            // Seed админ и оператор и демо клиент
             var adminUserId = "e5555555-eeee-4eee-eeee-eeeeeeeeeee5";
             var operatorUserId = "f6666666-ffff-4fff-ffff-fffffffffff6";
             var demoUserId = "d4444444-dddd-4ddd-dddd-dddddddddddd";
@@ -79,14 +77,12 @@ namespace CineMate.Data
                 }
             );
 
-            // Присвояване роли
             modelBuilder.Entity<IdentityUserRole<string>>().HasData(
                 new IdentityUserRole<string> { UserId = adminUserId, RoleId = adminRoleId },
                 new IdentityUserRole<string> { UserId = operatorUserId, RoleId = operatorRoleId },
                 new IdentityUserRole<string> { UserId = demoUserId, RoleId = clientRoleId }
             );
 
-            // 4) Seed Cities → Cinemas
             modelBuilder.Entity<City>().HasData(
               new City { Id = -1, Name = "Sofia" },
               new City { Id = -2, Name = "Plovdiv" },
@@ -104,7 +100,6 @@ namespace CineMate.Data
                 new Cinema { Id = -9, Name = "CineMate Sea Garden", CityId = -3 }
             );
 
-            // Seed филми (11)
             modelBuilder.Entity<Movie>().HasData(
                 new Movie { Id = 1, Title = "F1", Director = "TBA", ReleaseYear = 2025, Genre = "Sports Drama", Synopsis = "A behind-the-scenes look at the rivalries and politics of Formula 1.", DurationMinutes = 120 },
                 new Movie { Id = 2, Title = "Jurassic World: Rebirth", Director = "Colin Trevorrow", ReleaseYear = 2025, Genre = "Adventure / Sci-Fi", Synopsis = "Scientists’ attempt to fully resurrect dinosaurs leads to catastrophic consequences.", DurationMinutes = 140 },
@@ -119,7 +114,6 @@ namespace CineMate.Data
                 new Movie { Id = 11, Title = "Lilo & Stitch (2025)", Director = "Dean Devlin", ReleaseYear = 2025, Genre = "Animation / Adventure", Synopsis = "Lilo and her alien friend Stitch embark on new adventures in the Hawaiian islands.", DurationMinutes = 85 }
             );
 
-            // Връзки
             modelBuilder.Entity<City>()
                 .HasMany(c => c.Cinemas)
                 .WithOne(cn => cn.City)
@@ -150,7 +144,6 @@ namespace CineMate.Data
                 .HasForeignKey<Payment>(p => p.ReservationId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Reservation <-> Seat many-to-many
             modelBuilder.Entity<ReservationSeat>()
                 .HasKey(rs => new { rs.ReservationId, rs.SeatId });
 
@@ -165,12 +158,10 @@ namespace CineMate.Data
                 .HasForeignKey(rs => rs.SeatId);
 
 
-            // Индекси
             modelBuilder.Entity<Seat>()
                 .HasIndex(s => new { s.ScreeningId, s.Row, s.Number })
                 .IsUnique();
 
-            // Decimal прецизност
             modelBuilder.Entity<Reservation>()
                 .Property(r => r.TotalPrice)
                 .HasPrecision(18, 2);
@@ -187,7 +178,7 @@ namespace CineMate.Data
                .HasOne(rs => rs.Reservation)
                .WithMany(r => r.ReservationSeats)
                .HasForeignKey(rs => rs.ReservationId)
-               .OnDelete(DeleteBehavior.Restrict); // avoid cascade path
+               .OnDelete(DeleteBehavior.Restrict); 
 
             modelBuilder.Entity<ReservationSeat>()
                 .HasOne(rs => rs.Seat)

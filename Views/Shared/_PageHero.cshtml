@@ -1,7 +1,6 @@
 ﻿@model string
 
 @{
-    // инжектираме CSS само веднъж за цялата заявка
     var key = "PageHeroStyleIncluded";
     var included = (Context.Items[key] as bool?) ?? false;
     if (!included)

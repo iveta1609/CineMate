@@ -32,7 +32,6 @@
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-    <!-- Dropdown за Cinema -->
     <div class="form-group mb-3">
         <label asp-for="CinemaId" class="form-label"></label>
         <select asp-for="CinemaId"
@@ -43,7 +42,6 @@
         <span asp-validation-for="CinemaId" class="text-danger"></span>
     </div>
 
-    <!-- Dropdown за Movie -->
     <div class="form-group mb-3">
         <label asp-for="MovieId" class="form-label"></label>
         <select asp-for="MovieId"
@@ -54,7 +52,6 @@
         <span asp-validation-for="MovieId" class="text-danger"></span>
     </div>
 
-    <!-- Поле за StartTime -->
     <div class="form-group mb-3">
         <label asp-for="StartTime" class="form-label"></label>
         <input asp-for="StartTime" type="datetime-local" class="form-control" />

@@ -29,7 +29,6 @@ namespace CineMate.Controllers
             _userManager = userManager;
         }
 
-        // GET: /Payments/Checkout?reservationId=123
         public async Task<IActionResult> Checkout(int reservationId)
         {
             var r = await _context.Reservations
@@ -65,7 +64,6 @@ namespace CineMate.Controllers
             if (r == null) return NotFound();
             if (r.IsPaid) return RedirectToAction("Details", "Reservations", new { id = r.Id });
 
-            // ---- Само точно 16 цифри + Luhn ----
             var digits = new string((form.CardNumber ?? string.Empty).Where(char.IsDigit).ToArray());
 
             if (string.IsNullOrWhiteSpace(form.Cardholder) ||
@@ -77,7 +75,6 @@ namespace CineMate.Controllers
                 TempData["Err"] = "Payment failed: please check your card details (16 digits required).";
                 return RedirectToAction(nameof(Checkout), new { reservationId = r.Id });
             }
-            // ------------------------------------
 
             r.IsPaid = true;
             r.PaidAt = DateTime.UtcNow;
@@ -100,7 +97,7 @@ namespace CineMate.Controllers
                 if (!string.IsNullOrWhiteSpace(to))
                     await _email.SendReservationReceiptAsync(to, r);
             }
-            catch { /* не блокирай */ }
+            catch {  }
 
             TempData["Ok"] = $"Payment successful. Ref: {r.PaymentRef}";
             return RedirectToAction("Success", new { reservationId = r.Id });

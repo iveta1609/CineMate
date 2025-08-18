@@ -224,7 +224,6 @@ else
             <h3 class="day-title" id="day-@dayKey">@DayLabel(g.Key)</h3>
 
             <div class="row g-4" data-day="@dayKey">
-                @* За деня групираме по филм и показваме всички налични часове *@
                 @foreach (var movieGroup in g.GroupBy(m => m.Movie.Id))
                 {
                     var first = movieGroup.First();
